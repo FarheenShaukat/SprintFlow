@@ -81,11 +81,24 @@ async function request(path: string, options: RequestInit = {}, accessToken: str
 async function parseError(response: Response) {
   let message = `API request failed: ${response.status}`;
   try {
-    const data = await response.json();
+    const data = await response.clone().json();
+    if (typeof data === "string") return data;
+    if ("detail" in data && typeof data.detail === "string") return data.detail;
+    if ("non_field_errors" in data && Array.isArray(data.non_field_errors)) {
+      return String(data.non_field_errors[0]);
+    }
     const firstValue = Object.values(data)[0];
     message = Array.isArray(firstValue) ? String(firstValue[0]) : JSON.stringify(data);
   } catch {
-    // Keep the status-based message.
+    try {
+      const text = await response.clone().text();
+      if (text.includes("DisallowedHost")) {
+        return "Backend rejected this production domain. Set DJANGO_ALLOWED_HOSTS correctly on Vercel.";
+      }
+      if (text.trim()) return text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 180);
+    } catch {
+      // Keep the status-based message.
+    }
   }
   return message;
 }

@@ -22,8 +22,9 @@ function RegisterForm() {
 
   async function onSubmit(values: z.infer<typeof schema>) {
     try {
-      await authApi.register({ full_name: values.fullName, email: values.email, password: values.password });
-      const result = await authApi.login({ email: values.email, password: values.password });
+      const email = values.email.trim().toLowerCase();
+      await authApi.register({ full_name: values.fullName.trim(), email, password: values.password });
+      const result = await authApi.login({ email, password: values.password });
       localStorage.setItem("sprintflow_refresh", result.refresh);
       setAccessToken(result.access);
       router.push(searchParams.get("next") || "/dashboard");
