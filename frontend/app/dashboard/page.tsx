@@ -7,7 +7,7 @@ import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardSkeleton, RowSkeleton } from "@/components/ui/skeleton";
-import { projectApi, reportApi, type Project, type ProjectReport, type Workspace, workspaceApi } from "@/lib/api";
+import { ApiError, projectApi, reportApi, type Project, type ProjectReport, type Workspace, workspaceApi } from "@/lib/api";
 
 export default function DashboardPage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -31,8 +31,12 @@ export default function DashboardPage() {
         const firstProject = projectResult.results[0];
         setReport(firstProject ? await reportApi.get(firstProject.id) : null);
       }
-    } catch {
-      setError("Sign in first, then create your workspace.");
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        setError("Your session expired. Please sign in again.");
+      } else {
+        setError(error instanceof Error ? error.message : "Could not load your dashboard.");
+      }
     } finally {
       setLoading(false);
     }
@@ -44,10 +48,19 @@ export default function DashboardPage() {
 
   async function createWorkspace() {
     if (!name.trim()) return;
-    await workspaceApi.create({ name, description });
-    setName("");
-    setDescription("");
-    await load();
+    setError("");
+    try {
+      await workspaceApi.create({ name, description });
+      setName("");
+      setDescription("");
+      await load();
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        setError("Your session expired. Please sign in again.");
+      } else {
+        setError(error instanceof Error ? error.message : "Could not create workspace.");
+      }
+    }
   }
 
   const metrics = [

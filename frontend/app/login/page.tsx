@@ -22,7 +22,7 @@ function LoginForm() {
 
   async function onSubmit(values: FormValues) {
     try {
-      const result = await authApi.login(values);
+      const result = await authApi.login({ email: values.email.trim().toLowerCase(), password: values.password });
       localStorage.setItem("sprintflow_refresh", result.refresh);
       setAccessToken(result.access);
       router.push(searchParams.get("next") || "/dashboard");

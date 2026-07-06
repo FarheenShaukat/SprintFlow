@@ -12,6 +12,16 @@ const API_URL = getApiUrl();
 const ACCESS_TOKEN_KEY = "sprintflow_access";
 const REFRESH_TOKEN_KEY = "sprintflow_refresh";
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 type RefreshResponse = {
   access: string;
   refresh?: string;
@@ -109,7 +119,7 @@ async function parseError(response: Response) {
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   let response = await request(path, options);
-  const isAuthRequest = path.startsWith("/auth/login/") || path.startsWith("/auth/register/") || path.startsWith("/auth/refresh/");
+  const isAuthRequest = path.startsWith("/auth/login") || path.startsWith("/auth/register") || path.startsWith("/auth/refresh");
 
   if (response.status === 401 && !isAuthRequest) {
     const newAccessToken = await refreshAccessToken();
@@ -122,7 +132,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
 
   if (!response.ok) {
     if (response.status === 401 && !isAuthRequest) notifySessionExpired();
-    throw new Error(await parseError(response));
+    throw new ApiError(await parseError(response), response.status);
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
