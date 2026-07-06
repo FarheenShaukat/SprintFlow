@@ -71,9 +71,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+DATABASE_URL = config("DATABASE_URL", default="")
 DATABASES = {
     "default": dj_database_url.config(
-        default=f"sqlite:///{'/tmp/sprintflow.sqlite3' if IS_VERCEL else BASE_DIR / 'db.sqlite3'}",
+        default=DATABASE_URL or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
         conn_max_age=600,
     )
 }
