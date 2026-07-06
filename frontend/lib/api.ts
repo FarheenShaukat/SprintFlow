@@ -43,6 +43,12 @@ function setTokens(tokens: RefreshResponse) {
   if (tokens.refresh) localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh);
 }
 
+function normalizeApiPath(path: string) {
+  const [pathname, query = ""] = path.split("?");
+  const normalizedPath = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  return query ? `${normalizedPath}?${query}` : normalizedPath;
+}
+
 export function clearAuthTokens() {
   if (!isBrowser()) return;
   localStorage.removeItem(ACCESS_TOKEN_KEY);
@@ -85,7 +91,7 @@ async function request(path: string, options: RequestInit = {}, accessToken: str
   }
   if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
 
-  return fetch(`${API_URL}${path}`, { ...options, headers });
+  return fetch(`${API_URL}${normalizeApiPath(path)}`, { ...options, headers });
 }
 
 async function parseError(response: Response) {
