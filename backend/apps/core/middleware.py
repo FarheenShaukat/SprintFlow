@@ -1,5 +1,5 @@
 from django.core.exceptions import ImproperlyConfigured
-from django.db.utils import OperationalError
+from django.db.utils import DatabaseError
 from django.http import JsonResponse
 
 
@@ -10,7 +10,7 @@ class ApiDatabaseErrorMiddleware:
     def __call__(self, request):
         try:
             return self.get_response(request)
-        except (OperationalError, ImproperlyConfigured) as exc:
+        except (DatabaseError, ImproperlyConfigured) as exc:
             if request.path.startswith("/api/"):
                 return JsonResponse(
                     {

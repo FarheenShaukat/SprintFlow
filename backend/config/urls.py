@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.db import connection
-from django.db.utils import OperationalError
+from django.db.utils import DatabaseError
 from django.http import JsonResponse
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
@@ -19,7 +19,7 @@ def database_health_check(request):
             cursor.execute("select 1")
             cursor.fetchone()
             tables = connection.introspection.table_names(cursor)
-    except OperationalError as exc:
+    except DatabaseError as exc:
         return JsonResponse({"status": "error", "message": str(exc)}, status=500)
     return JsonResponse({
         "status": "ok",
