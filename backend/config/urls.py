@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.db import connection
+from django.db.utils import OperationalError
 from django.http import JsonResponse
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
@@ -10,10 +12,28 @@ from apps.accounts.views import LoginView, LogoutView, MeView, RegisterView
 def health_check(request):
     return JsonResponse({"status": "ok"})
 
+
+def database_health_check(request):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("select 1")
+            cursor.fetchone()
+            tables = connection.introspection.table_names(cursor)
+    except OperationalError as exc:
+        return JsonResponse({"status": "error", "message": str(exc)}, status=500)
+    return JsonResponse({
+        "status": "ok",
+        "engine": connection.settings_dict["ENGINE"],
+        "migrated": "django_migrations" in tables,
+        "has_users_table": "accounts_user" in tables,
+    })
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/health", health_check, name="health-check-no-slash"),
     path("api/health/", health_check, name="health-check"),
+    path("api/health/db", database_health_check, name="database-health-check-no-slash"),
+    path("api/health/db/", database_health_check, name="database-health-check"),
     path("api/schema", SpectacularAPIView.as_view(), name="schema-no-slash"),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui-no-slash"),

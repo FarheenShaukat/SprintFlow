@@ -3,6 +3,7 @@ from pathlib import Path
 
 import dj_database_url
 from decouple import AutoConfig, Csv
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 ROOT_DIR = BASE_DIR.parent
@@ -72,6 +73,9 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASE_URL = config("DATABASE_URL", default="")
+if IS_VERCEL and not DATABASE_URL:
+    raise ImproperlyConfigured("DATABASE_URL is required on Vercel. Set it to your Supabase PostgreSQL connection string.")
+
 DATABASES = {
     "default": dj_database_url.config(
         default=DATABASE_URL or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
