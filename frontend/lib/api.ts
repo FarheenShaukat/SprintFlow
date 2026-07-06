@@ -1,4 +1,14 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
+function getApiUrl() {
+  const configuredUrl = process.env.NEXT_PUBLIC_API_URL || "/api";
+  if (typeof window === "undefined") return configuredUrl;
+
+  const isLocalPage = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  const pointsToLocalBackend = configuredUrl.includes("localhost") || configuredUrl.includes("127.0.0.1");
+
+  return !isLocalPage && pointsToLocalBackend ? "/api" : configuredUrl;
+}
+
+const API_URL = getApiUrl();
 const ACCESS_TOKEN_KEY = "sprintflow_access";
 const REFRESH_TOKEN_KEY = "sprintflow_refresh";
 
