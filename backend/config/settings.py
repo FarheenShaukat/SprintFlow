@@ -7,9 +7,10 @@ from decouple import AutoConfig, Csv
 BASE_DIR = Path(__file__).resolve().parent.parent
 ROOT_DIR = BASE_DIR.parent
 config = AutoConfig(search_path=ROOT_DIR)
+IS_VERCEL = bool(config("VERCEL", default=""))
 
 SECRET_KEY = config("DJANGO_SECRET_KEY", default="dev-only-change-me")
-DEBUG = config("DJANGO_DEBUG", default=True, cast=bool)
+DEBUG = config("DJANGO_DEBUG", default=not IS_VERCEL, cast=bool)
 ALLOWED_HOSTS = list(config("DJANGO_ALLOWED_HOSTS", default="*", cast=Csv()))
 VERCEL_URL = config("VERCEL_URL", default="")
 if VERCEL_URL:
@@ -72,7 +73,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        default=f"sqlite:///{'/tmp/sprintflow.sqlite3' if IS_VERCEL else BASE_DIR / 'db.sqlite3'}",
         conn_max_age=600,
     )
 }

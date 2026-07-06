@@ -92,6 +92,10 @@ async function parseError(response: Response) {
   } catch {
     try {
       const text = await response.clone().text();
+      const title = text.match(/<title>(.*?)<\/title>/is)?.[1];
+      if (title) return title.replace(/\s+/g, " ").trim();
+      const heading = text.match(/<h1>(.*?)<\/h1>/is)?.[1];
+      if (heading) return heading.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
       if (text.includes("DisallowedHost")) {
         return "Backend rejected this production domain. Set DJANGO_ALLOWED_HOSTS correctly on Vercel.";
       }
