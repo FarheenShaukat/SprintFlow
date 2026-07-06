@@ -10,7 +10,12 @@ config = AutoConfig(search_path=ROOT_DIR)
 
 SECRET_KEY = config("DJANGO_SECRET_KEY", default="dev-only-change-me")
 DEBUG = config("DJANGO_DEBUG", default=True, cast=bool)
-ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="*", cast=Csv())
+ALLOWED_HOSTS = list(config("DJANGO_ALLOWED_HOSTS", default="*", cast=Csv()))
+VERCEL_URL = config("VERCEL_URL", default="")
+if VERCEL_URL:
+    ALLOWED_HOSTS.extend([VERCEL_URL, f".{VERCEL_URL}"])
+if ".vercel.app" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(".vercel.app")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
