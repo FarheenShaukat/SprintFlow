@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Zenith PM - Engineering Team Workspace</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container": "#f0ecf9",
+                    "on-secondary-fixed-variant": "#004395",
+                    "secondary-container": "#2170e4",
+                    "on-error": "#ffffff",
+                    "tertiary": "#7e3000",
+                    "inverse-primary": "#c3c0ff",
+                    "on-tertiary-fixed": "#351000",
+                    "outline": "#777587",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-fixed-variant": "#3323cc",
+                    "primary-container": "#4f46e5",
+                    "secondary-fixed-dim": "#adc6ff",
+                    "on-secondary-fixed": "#001a42",
+                    "secondary": "#0058be",
+                    "tertiary-container": "#a44100",
+                    "tertiary-fixed": "#ffdbcc",
+                    "on-tertiary-container": "#ffd2be",
+                    "surface-bright": "#fcf8ff",
+                    "surface-variant": "#e4e1ee",
+                    "on-tertiary-fixed-variant": "#7b2f00",
+                    "error-container": "#ffdad6",
+                    "surface-dim": "#dcd8e5",
+                    "tertiary-fixed-dim": "#ffb695",
+                    "on-primary-container": "#dad7ff",
+                    "primary": "#3525cd",
+                    "secondary-fixed": "#d8e2ff",
+                    "on-secondary": "#ffffff",
+                    "surface-container-high": "#eae6f4",
+                    "on-error-container": "#93000a",
+                    "on-background": "#1b1b24",
+                    "on-tertiary": "#ffffff",
+                    "primary-fixed-dim": "#c3c0ff",
+                    "on-surface-variant": "#464555",
+                    "outline-variant": "#c7c4d8",
+                    "on-primary-fixed": "#000b69",
+                    "surface-tint": "#4d44e3",
+                    "error": "#ba1a1a",
+                    "primary-fixed": "#e2dfff",
+                    "background": "#fcf8ff",
+                    "inverse-surface": "#302f39",
+                    "surface-container-highest": "#e4e1ee",
+                    "on-primary": "#ffffff",
+                    "surface": "#fcf8ff",
+                    "inverse-on-surface": "#f3effc",
+                    "on-surface": "#1b1b24",
+                    "surface-container-low": "#f5f2ff",
+                    "on-secondary-container": "#fefcff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "density-compact": "4px",
+                    "density-comfortable": "12px",
+                    "container-margin": "24px",
+                    "sidebar-width": "240px",
+                    "unit": "4px",
+                    "gutter": "16px"
+            },
+            "fontFamily": {
+                    "body-lg": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "label-md": ["Geist"],
+                    "body-md": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "mono": ["Geist"],
+                    "headline-md": ["Inter"],
+                    "display": ["Inter"]
+            },
+            "fontSize": {
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                    "mono": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "display": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #F8FAFC;
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 16px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid #E2E8F0;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body-md overflow-x-hidden">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-40 flex justify-between items-center px-container-margin w-full bg-surface h-16 border-b border-outline-variant dark:border-outline-variant/20">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary text-headline-md cursor-pointer">menu</span>
+<h1 class="text-headline-md font-headline-md font-bold text-primary">Zenith PM</h1>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex items-center gap-6">
+<a class="text-primary font-bold font-label-md text-label-md transition-colors" href="#">Workspace</a>
+<a class="text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors" href="#">Insights</a>
+</div>
+<div class="w-10 h-10 rounded-full border border-outline-variant overflow-hidden cursor-pointer active:scale-95 duration-100">
+<img class="w-full h-full object-cover" data-alt="A professional studio portrait of a technology leader, soft natural light, minimalist background, wearing professional tech-casual attire, high-resolution photography, neutral clean tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCETV-1_mA1T6z2zA3fKhxP4_MY9VwJB2BFmdviNR2c_pzWd-ix3-96aIjIZV6s5s61mdKSaylAA_Noy7xQnq5TPcD-D0u7tTqzGkTx9TQEx60iGs1qMaQmGPB8oVZHTn4bwfSrlz43J8jTc8yQD6UgPvkji_T3_S1LqETw28qxFvxunzTUevBhd_-uPh5FByK5meOB6YnJQHezNKnL_MlYVLobmsXgGVYNXkCnTcAE4xTqgkkGwMG3CGVgW4Ms_YomtdpoLPgXCj5N"/>
+</div>
+</div>
+</header>
+<div class="flex h-[calc(100vh-64px)]">
+<!-- Sidebar Navigation -->
+<aside class="fixed left-0 h-full hidden md:flex flex-col z-50 w-sidebar-width bg-surface border-r border-outline-variant dark:border-outline-variant/20">
+<div class="px-6 py-8">
+<h2 class="font-headline-md text-headline-md text-primary mb-6">Project Space</h2>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-primary bg-primary/5 border-l-4 border-primary transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="workspaces">workspaces</span>
+<span class="font-label-md text-label-md">Workspaces</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+<span class="font-label-md text-label-md">Projects</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="assessment">assessment</span>
+<span class="font-label-md text-label-md">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</nav>
+</div>
+</aside>
+<!-- Content Canvas -->
+<main class="flex-1 md:ml-[240px] p-container-margin overflow-y-auto">
+<!-- Header Section -->
+<section class="mb-12">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<div class="flex items-center gap-3 mb-2">
+<div class="w-12 h-12 bg-primary-container rounded-lg flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined text-2xl">engineering</span>
+</div>
+<span class="px-2 py-1 bg-secondary-fixed text-on-secondary-fixed text-[10px] uppercase font-bold tracking-widest rounded">Internal</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-background mb-1">Engineering Team</h2>
+<p class="text-on-surface-variant font-body-md max-w-2xl">Core platform development and infrastructure management. This workspace contains all primary engineering projects, architectural specifications, and CI/CD pipelines.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="bg-surface-container-highest text-on-surface border border-outline-variant px-4 py-2 rounded-lg font-label-md text-label-md flex items-center gap-2 hover:bg-surface-variant/50 transition-colors">
+<span class="material-symbols-outlined text-sm">edit</span>
+                            Edit Workspace
+                        </button>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-md text-label-md flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-sm">share</span>
+                            Share
+                        </button>
+</div>
+</div>
+</section>
+<!-- Bento Grid Stats & Content -->
+<div class="bento-grid mb-12">
+<!-- Activity Heatmap -->
+<div class="col-span-12 lg:col-span-8 glass-card rounded-xl p-6 relative overflow-hidden group">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-md text-headline-md">Workspace Velocity</h3>
+<span class="text-label-md font-label-md text-primary">+12% vs last month</span>
+</div>
+<div class="h-48 w-full bg-surface-container-low rounded-lg relative flex items-end justify-between px-4 pb-4">
+<!-- Pseudo chart bars -->
+<div class="w-8 bg-primary/20 rounded-t-sm h-[40%] hover:bg-primary transition-all cursor-help" title="Mon"></div>
+<div class="w-8 bg-primary/20 rounded-t-sm h-[65%] hover:bg-primary transition-all cursor-help" title="Tue"></div>
+<div class="w-8 bg-primary/40 rounded-t-sm h-[85%] hover:bg-primary transition-all cursor-help" title="Wed"></div>
+<div class="w-8 bg-primary/20 rounded-t-sm h-[55%] hover:bg-primary transition-all cursor-help" title="Thu"></div>
+<div class="w-8 bg-primary/60 rounded-t-sm h-[95%] hover:bg-primary transition-all cursor-help" title="Fri"></div>
+<div class="w-8 bg-primary/10 rounded-t-sm h-[20%] hover:bg-primary transition-all cursor-help" title="Sat"></div>
+<div class="w-8 bg-primary/10 rounded-t-sm h-[15%] hover:bg-primary transition-all cursor-help" title="Sun"></div>
+</div>
+<div class="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+</div>
+<!-- Projects Quick Count -->
+<div class="col-span-12 md:col-span-6 lg:col-span-4 glass-card rounded-xl p-6 flex flex-col justify-between border-l-4 border-l-secondary">
+<div>
+<p class="text-on-surface-variant font-label-md text-label-md uppercase tracking-wider mb-2">Active Projects</p>
+<h4 class="font-display text-display text-primary">08</h4>
+</div>
+<div class="flex -space-x-2 mt-4">
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-slate-200"></div>
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-slate-300"></div>
+<div class="w-8 h-8 rounded-full border-2 border-surface bg-slate-400"></div>
+<div class="w-8 h-8 rounded-full border-2 border-surface flex items-center justify-center bg-surface-container text-[10px] font-bold">+5</div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+<!-- Projects List (Left 2 Columns) -->
+<div class="lg:col-span-2 space-y-6">
+<div class="flex justify-between items-center">
+<h3 class="font-headline-md text-headline-md text-on-surface">Active Projects</h3>
+<button class="text-primary font-label-md text-label-md flex items-center gap-1 hover:underline active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-base">add</span>
+                            Create Project
+                        </button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Project Card 1 -->
+<div class="bg-surface rounded-xl p-4 border border-outline-variant hover:shadow-lg transition-shadow cursor-pointer group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors">
+<span class="material-symbols-outlined text-blue-600">smartphone</span>
+</div>
+<span class="px-2 py-0.5 bg-green-50 text-green-700 text-[11px] font-bold rounded">On Track</span>
+</div>
+<h5 class="font-headline-md text-headline-md mb-1">Mobile App</h5>
+<p class="text-body-sm text-on-surface-variant mb-4">React Native overhaul of the core consumer application.</p>
+<div class="w-full bg-surface-container rounded-full h-1.5 mb-2">
+<div class="bg-primary h-1.5 rounded-full" style="width: 75%"></div>
+</div>
+<div class="flex justify-between items-center text-label-md">
+<span class="text-on-surface-variant">75% Complete</span>
+<span class="font-bold">12 Tasks Left</span>
+</div>
+</div>
+<!-- Project Card 2 -->
+<div class="bg-surface rounded-xl p-4 border border-outline-variant hover:shadow-lg transition-shadow cursor-pointer group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-purple-50 rounded-lg group-hover:bg-purple-100 transition-colors">
+<span class="material-symbols-outlined text-purple-600">api</span>
+</div>
+<span class="px-2 py-0.5 bg-yellow-50 text-yellow-700 text-[11px] font-bold rounded">Delayed</span>
+</div>
+<h5 class="font-headline-md text-headline-md mb-1">API Redesign</h5>
+<p class="text-body-sm text-on-surface-variant mb-4">Migrating legacy monolithic endpoints to microservices.</p>
+<div class="w-full bg-surface-container rounded-full h-1.5 mb-2">
+<div class="bg-primary h-1.5 rounded-full" style="width: 32%"></div>
+</div>
+<div class="flex justify-between items-center text-label-md">
+<span class="text-on-surface-variant">32% Complete</span>
+<span class="font-bold">45 Tasks Left</span>
+</div>
+</div>
+<!-- Project Card 3 -->
+<div class="bg-surface rounded-xl p-4 border border-outline-variant hover:shadow-lg transition-shadow cursor-pointer group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-orange-50 rounded-lg group-hover:bg-orange-100 transition-colors">
+<span class="material-symbols-outlined text-orange-600">dns</span>
+</div>
+<span class="px-2 py-0.5 bg-blue-50 text-blue-700 text-[11px] font-bold rounded">Planning</span>
+</div>
+<h5 class="font-headline-md text-headline-md mb-1">DB Migration</h5>
+<p class="text-body-sm text-on-surface-variant mb-4">Scaling PostgreSQL instances to support global load.</p>
+<div class="w-full bg-surface-container rounded-full h-1.5 mb-2">
+<div class="bg-primary h-1.5 rounded-full" style="width: 5%"></div>
+</div>
+<div class="flex justify-between items-center text-label-md">
+<span class="text-on-surface-variant">5% Complete</span>
+<span class="font-bold">88 Tasks Left</span>
+</div>
+</div>
+<!-- Add New Project Empty State -->
+<div class="bg-surface-container-low border-2 border-dashed border-outline-variant rounded-xl p-4 flex flex-col items-center justify-center text-center hover:bg-surface-container transition-colors cursor-pointer group">
+<div class="w-10 h-10 rounded-full bg-surface border border-outline-variant flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-primary">add</span>
+</div>
+<p class="font-label-md text-label-md text-on-surface-variant">Create New Project</p>
+</div>
+</div>
+</div>
+<!-- Members List (Right 1 Column) -->
+<div class="space-y-6">
+<div class="flex justify-between items-center">
+<h3 class="font-headline-md text-headline-md text-on-surface">Members</h3>
+<button class="text-primary font-label-md text-label-md flex items-center gap-1 hover:underline active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-base">person_add</span>
+                            Add Member
+                        </button>
+</div>
+<div class="bg-surface border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+<div class="divide-y divide-outline-variant">
+<!-- Member 1 -->
+<div class="p-4 flex items-center justify-between hover:bg-surface-container-low transition-colors group">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="Close-up portrait of a female software engineer, professional lighting, urban office background blurred, wearing glasses and a focused expression, high-quality digital photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4j4NuJg8YyI8HKC1cMqhWjD1o70ob7E8eWmQzB7y_v83ThQsDh5MUZl0yyxioiYRo29gviUiL6N7gjaStSP_AyCcpLEW4N85YV5Q7iXf_2pxY-ChC6jLUdHdROZF6rm-yn-tH5NHv1814l-H121TIbPnnvH90vc_FuUrP3LODmB_oCiiR7R-HZELDW7GJRh1Sifbw6B4VLUNVu9Ormv_-D_rv1SEObMRglH0f-TS0IAZJU-DQT_Pds0tpiIybpTOOrxzmMHz6PGHF"/>
+</div>
+<div>
+<p class="font-body-md text-on-surface font-semibold">Sarah Jenkins</p>
+<p class="text-[11px] text-on-surface-variant">Lead Developer</p>
+</div>
+</div>
+<span class="px-2 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded uppercase">Owner</span>
+</div>
+<!-- Member 2 -->
+<div class="p-4 flex items-center justify-between hover:bg-surface-container-low transition-colors group">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="Portrait of a male project manager, creative studio setting, minimalist professional style, neutral colors, bright and clean aesthetic, high detail." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBot3WDYtnpxSbS3grrvzs_mxMp6L_o4nGioihjbWmkEiIODS6DEGBU1Ceu8voIX7jAaPduBVrazrjPB7n5xlxSVWshf2KeKPVFeDC0ycZEX611AwVwB0RpmHzQH-dLorrzLsyhhqk6C2k2_A4xyYMEFD4lF5dDl0wmZOyr_CQ0Mgbaeatu98JMoUvXNZF5FCw3LYHVW60peZQoHpLqn4WjhtfrKe7dI6ODo6r2eBxtxF3z3DVyb-A7PmCMpUxl5PyCMA6kaB5EI1IP"/>
+</div>
+<div>
+<p class="font-body-md text-on-surface font-semibold">David Chen</p>
+<p class="text-[11px] text-on-surface-variant">Product Owner</p>
+</div>
+</div>
+<span class="px-2 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-bold rounded uppercase">Admin</span>
+</div>
+<!-- Member 3 -->
+<div class="p-4 flex items-center justify-between hover:bg-surface-container-low transition-colors group">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="Headshot of a young male software developer, bright office environment, modern professional look, vibrant energy, shallow depth of field." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPuB7WKChkj27J2vck1x_R-YUD7UJszoWD0LB6hDvzBBjMW3SW6tuv5_pgSjFMbO10EvevkfwX2Qd9Ga1QrCgsxYpdTFg86gvyW_xG7UXy-zHIEHuIm1v9CbJjEK_H8eUdwm1m2oxrmL5Bp8FV2O7NOza-NilzTnvLJK3WdNq1qR7nGJD8gXswnG_Ojt24shkN5bbu-t8DTwthmI1ptXTiMDOfL2BSGOUx8A40MwldkA3KjLjgkO_RO4bnKDgvtAP-u-BIrZHV3b5x"/>
+</div>
+<div>
+<p class="font-body-md text-on-surface font-semibold">Marcus Wright</p>
+<p class="text-[11px] text-on-surface-variant">Security Lead</p>
+</div>
+</div>
+<span class="px-2 py-1 bg-surface-container-low text-on-surface-variant text-[10px] font-bold rounded uppercase border border-outline-variant">Member</span>
+</div>
+<!-- Member 4 -->
+<div class="p-4 flex items-center justify-between hover:bg-surface-container-low transition-colors group">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="Portrait of a professional female designer, modern studio lighting, elegant minimalist aesthetic, high-resolution portrait, soft colors." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9LWpDwpq7RBUHwuzLw7kE15jsWkfhwEbi4qIg_C9qL8FdJkuenxTw5XimLOs7UxvMjtYfX1UZZsI-2Y3b-niWTyWcCZY4kxMYpaK1maIgvnrMNDtn1edSDKk9LvPNhTmqnf0Xenl9OWtNS3cd-0-amqP7dYTG7dMu2JXK_QHmpJBWqqlMBpTY3NJq7fXbc2dg8taAIW0ZlPZPKGMfZV-Yb2PLkkn2-Uhvo-e5TMYtt_TjUhBlk-1cT7doAEo8W5ONAe7UyW_AiZPP"/>
+</div>
+<div>
+<p class="font-body-md text-on-surface font-semibold">Elena Rodriguez</p>
+<p class="text-[11px] text-on-surface-variant">UI Architect</p>
+</div>
+</div>
+<span class="px-2 py-1 bg-surface-container-low text-on-surface-variant text-[10px] font-bold rounded uppercase border border-outline-variant">Member</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-3 text-center border-t border-outline-variant">
+<button class="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors">View All 24 Members</button>
+</div>
+</div>
+<!-- Pinned Documents -->
+<div class="bg-primary/5 rounded-xl p-5 border border-primary/20">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary">push_pin</span>
+<h4 class="font-label-md text-label-md font-bold uppercase tracking-widest text-primary">Pinned Guides</h4>
+</div>
+<ul class="space-y-3">
+<li>
+<a class="flex items-center justify-between group" href="#">
+<span class="text-body-sm text-on-surface-variant group-hover:text-primary transition-colors">Deployment Checklist</span>
+<span class="material-symbols-outlined text-sm text-outline group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</a>
+</li>
+<li>
+<a class="flex items-center justify-between group" href="#">
+<span class="text-body-sm text-on-surface-variant group-hover:text-primary transition-colors">Architecture Overview</span>
+<span class="material-symbols-outlined text-sm text-outline group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Mobile Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex md:hidden justify-around items-center px-2 py-3 bg-surface border-t border-outline-variant dark:border-outline-variant/20 shadow-sm">
+<button class="flex flex-col items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-md text-[10px]">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-primary bg-primary/10 rounded-full px-4 py-1 active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined" data-icon="work">work</span>
+<span class="font-label-md text-[10px]">Work</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="check_circle">check_circle</span>
+<span class="font-label-md text-[10px]">Tasks</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-label-md text-[10px]">Stats</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-md text-[10px]">User</span>
+</button>
+</nav>
+<script>
+        // Micro-interactions
+        document.querySelectorAll('.glass-card, .bg-surface').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+
+        // Initialize active nav state
+        console.log("Zenith PM Workspace Detail Initialized");
+    </script>
+</body></html>

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SprintFlow AI Screens</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #fcf8ff;
+        --surface: #ffffff;
+        --muted: #f0ecf9;
+        --border: #c7c4d8;
+        --text: #1b1b24;
+        --subtle: #464555;
+        --primary: #3525cd;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      main {
+        width: min(1120px, calc(100% - 48px));
+        margin: 0 auto;
+        padding: 56px 0;
+      }
+
+      header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 28px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 36px;
+        line-height: 44px;
+        letter-spacing: -0.02em;
+      }
+
+      p {
+        margin: 0;
+        color: var(--subtle);
+        font-size: 14px;
+        line-height: 20px;
+      }
+
+      .badge {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: var(--surface);
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+      }
+
+      a {
+        min-height: 132px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 18px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.76);
+        color: inherit;
+        text-decoration: none;
+        transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+      }
+
+      a:hover {
+        transform: translateY(-2px);
+        border-color: var(--primary);
+        box-shadow: 0 12px 24px rgba(30, 41, 59, 0.08);
+      }
+
+      strong {
+        display: block;
+        font-size: 18px;
+        line-height: 24px;
+      }
+
+      span {
+        color: var(--subtle);
+        font-size: 13px;
+        line-height: 18px;
+      }
+
+      @media (max-width: 680px) {
+        main {
+          width: min(100% - 28px, 1120px);
+          padding: 32px 0;
+        }
+
+        header {
+          align-items: start;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>SprintFlow AI Screens</h1>
+          <p>Direct links to the UI screens extracted from the zip, with one Kanban and AI insights folded into reports/task detail.</p>
+        </div>
+        <div class="badge">Exact exported UI</div>
+      </header>
+
+      <section class="grid" aria-label="Prototype screens">
+        <a href="landing/code.html">
+          <strong>Landing Page</strong>
+          <span>Public product page.</span>
+        </a>
+        <a href="login/code.html">
+          <strong>Login</strong>
+          <span>Authentication entry screen.</span>
+        </a>
+        <a href="register/code.html">
+          <strong>Register</strong>
+          <span>New account screen.</span>
+        </a>
+        <a href="dashboard/code.html">
+          <strong>Intelligent Dashboard</strong>
+          <span>Sprint health, workload, and activity.</span>
+        </a>
+        <a href="workspace/code.html">
+          <strong>Workspace Detail</strong>
+          <span>Workspace/project overview.</span>
+        </a>
+        <a href="kanban/code.html">
+          <strong>Project Kanban</strong>
+          <span>Single main board with AI-ready task cards.</span>
+        </a>
+        <a href="task-detail/code.html">
+          <strong>Task Detail Modal</strong>
+          <span>Task metadata, comments, files, and activity.</span>
+        </a>
+        <a href="reports/code.html">
+          <strong>Reports & AI Insights</strong>
+          <span>Analytics screen using the AI insights export.</span>
+        </a>
+      </section>
+    </main>
+  </body>
+</html>

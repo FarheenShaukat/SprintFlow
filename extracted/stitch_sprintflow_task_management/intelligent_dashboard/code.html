@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SprintFlow AI | Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary": "#ffffff",
+                    "on-surface-variant": "#464555",
+                    "on-secondary": "#ffffff",
+                    "inverse-surface": "#302f39",
+                    "on-primary-container": "#dad7ff",
+                    "inverse-on-surface": "#f3effc",
+                    "primary": "#3525cd",
+                    "on-primary": "#ffffff",
+                    "primary-fixed": "#e2dfff",
+                    "surface-bright": "#fcf8ff",
+                    "tertiary-fixed": "#ffdbcc",
+                    "error-container": "#ffdad6",
+                    "background": "#fcf8ff",
+                    "on-tertiary-fixed-variant": "#7b2f00",
+                    "surface-dim": "#dcd8e5",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed-dim": "#adc6ff",
+                    "secondary": "#0058be",
+                    "secondary-container": "#2170e4",
+                    "on-surface": "#1b1b24",
+                    "surface": "#fcf8ff",
+                    "on-tertiary-fixed": "#351000",
+                    "on-primary-fixed-variant": "#3323cc",
+                    "inverse-primary": "#c3c0ff",
+                    "primary-container": "#4f46e5",
+                    "on-error-container": "#93000a",
+                    "on-secondary-container": "#fefcff",
+                    "tertiary": "#7e3000",
+                    "surface-container": "#f0ecf9",
+                    "primary-fixed-dim": "#c3c0ff",
+                    "on-primary-fixed": "#0f0069",
+                    "on-secondary-fixed-variant": "#004395",
+                    "on-tertiary-container": "#ffd2be",
+                    "surface-tint": "#4d44e3",
+                    "on-secondary-fixed": "#001a42",
+                    "on-error": "#ffffff",
+                    "outline-variant": "#c7c4d8",
+                    "secondary-fixed": "#d8e2ff",
+                    "error": "#ba1a1a",
+                    "surface-container-low": "#f5f2ff",
+                    "surface-container-highest": "#e4e1ee",
+                    "surface-container-high": "#eae6f4",
+                    "tertiary-fixed-dim": "#ffb695",
+                    "tertiary-container": "#a44100",
+                    "outline": "#777587",
+                    "on-background": "#1b1b24"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "sidebar-width": "240px",
+                    "density-comfortable": "12px",
+                    "density-compact": "4px",
+                    "gutter": "16px",
+                    "container-margin": "24px",
+                    "unit": "4px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "body-md": ["Inter"],
+                    "display": ["Inter"],
+                    "mono": ["Geist"],
+                    "label-md": ["Geist"],
+                    "headline-md": ["Inter"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "display": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "mono": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #fcf8ff;
+            color: #1b1b24;
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e4e1ee;
+            border-radius: 10px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 228, 240, 0.8);
+        }
+    </style>
+</head>
+<body class="flex min-h-screen overflow-hidden">
+<!-- SideNavBar (Authority Source: JSON) -->
+<aside class="fixed left-0 top-0 h-full w-sidebar-width bg-surface dark:bg-inverse-surface border-r border-outline-variant dark:border-outline shadow-sm dark:shadow-none z-50 flex flex-col">
+<div class="px-6 py-8 flex items-center gap-3">
+<div class="w-8 h-8 bg-primary rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<div>
+<h1 class="text-headline-md font-headline-md font-bold text-primary dark:text-inverse-primary leading-tight">SprintFlow AI</h1>
+<p class="text-[10px] font-label-md text-on-surface-variant uppercase tracking-wider">SaaS Platform</p>
+</div>
+</div>
+<nav class="flex-1 px-2 space-y-1 overflow-y-auto custom-scrollbar">
+<!-- Active Tab: Dashboard (Semantic Mapping) -->
+<a class="flex items-center gap-3 px-4 py-3 text-primary dark:text-inverse-primary bg-primary-container/10 dark:bg-primary-container/20 border-l-4 border-primary dark:border-inverse-primary active:scale-95 transition-all duration-150 group" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<!-- Inactive Tabs -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150 group" href="#">
+<span class="material-symbols-outlined" data-icon="account_tree">account_tree</span>
+<span class="font-body-md text-body-md">Projects</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150 group" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-body-md text-body-md">Team</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150 group" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-body-md text-body-md">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150 group" href="#">
+<span class="material-symbols-outlined" data-icon="bolt">bolt</span>
+<span class="font-body-md text-body-md">Sprint Planner</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150 group" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</nav>
+<div class="p-4 border-t border-outline-variant">
+<div class="bg-surface-container rounded-lg p-3 flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional studio portrait of a young software executive with short dark hair, wearing a navy blue blazer, set against a soft grey studio background. The lighting is crisp and modern, reflecting a high-end corporate identity for a productivity platform leader." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAsU8pgJ70iEN2mL_-JJszwBJv97fipz6P6XCAYltELET4zKK4t0edl_LSRYgOmNRROYXojbRAXAHZRiyUiXoPqr2p63LBgR_lHCAZc88of5l6ipN-Nt75bcqFh8-lY7x-GcnNmi5xV1TQQYIxCuRGUmaPSiVn5pv41bm1R34HBISyqVMjnv4RR6iAcV40EX5soRCFRCHKAZ-foGzrXaBSCyRw7CbsonI6DyUiMwnFV7b1THqh4mbul24brn80d9Ej4Mc69kJtbVC8"/>
+</div>
+<div class="overflow-hidden">
+<p class="text-body-sm font-semibold truncate">Alex Rivera</p>
+<p class="text-[10px] text-on-surface-variant">Pro Plan</p>
+</div>
+<button class="ml-auto text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<main class="ml-sidebar-width flex-1 flex flex-col min-h-screen overflow-y-auto">
+<!-- TopNavBar (Authority Source: JSON) -->
+<header class="sticky top-0 right-0 z-40 bg-surface/80 dark:bg-surface-container-lowest/80 backdrop-blur-md border-b border-outline-variant dark:border-outline flex justify-between items-center h-16 px-gutter w-full">
+<div class="flex items-center flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-full text-body-sm focus:ring-2 focus:ring-primary/20 placeholder:text-on-surface-variant/50" placeholder="Search tasks, teams, or reports..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container dark:hover:bg-inverse-surface rounded-full transition-all active:opacity-80">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container dark:hover:bg-inverse-surface rounded-full transition-all active:opacity-80">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<div class="h-8 w-[1px] bg-outline-variant mx-2"></div>
+<div class="flex items-center gap-2 px-2">
+<span class="text-label-md font-label-md text-on-surface-variant hidden lg:block">Sprint 24 Active</span>
+<div class="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: 'FILL' 1;">calendar_today</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="p-container-margin space-y-8 max-w-[1440px] mx-auto w-full">
+<!-- Intelligence Metrics Header -->
+<section class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+<!-- Sprint Health -->
+<div class="glass-card p-5 rounded-xl flex flex-col justify-between hover:shadow-lg transition-all cursor-default group">
+<div class="flex items-center justify-between mb-4">
+<span class="text-label-md text-on-surface-variant font-medium">Sprint Health</span>
+<span class="material-symbols-outlined text-secondary text-[20px]">favorite</span>
+</div>
+<div>
+<div class="text-display font-display text-primary">91%</div>
+<p class="text-[11px] text-secondary font-medium mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> On Track
+                        </p>
+</div>
+</div>
+<!-- Tasks Completed -->
+<div class="glass-card p-5 rounded-xl flex flex-col justify-between hover:shadow-lg transition-all cursor-default">
+<div class="flex items-center justify-between mb-4">
+<span class="text-label-md text-on-surface-variant font-medium">Tasks Completed</span>
+<span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
+</div>
+<div>
+<div class="text-display font-display text-on-surface">42</div>
+<p class="text-[11px] text-on-surface-variant mt-1">Out of 58 total</p>
+</div>
+</div>
+<!-- Blocked -->
+<div class="glass-card p-5 rounded-xl flex flex-col justify-between hover:shadow-lg transition-all cursor-default border-error/20">
+<div class="flex items-center justify-between mb-4">
+<span class="text-label-md text-on-surface-variant font-medium text-error">Blocked Issues</span>
+<span class="material-symbols-outlined text-error text-[20px]">block</span>
+</div>
+<div>
+<div class="text-display font-display text-error">3</div>
+<p class="text-[11px] text-error font-medium mt-1">Needs attention</p>
+</div>
+</div>
+<!-- Velocity -->
+<div class="glass-card p-5 rounded-xl flex flex-col justify-between hover:shadow-lg transition-all cursor-default">
+<div class="flex items-center justify-between mb-4">
+<span class="text-label-md text-on-surface-variant font-medium">Velocity</span>
+<span class="material-symbols-outlined text-tertiary text-[20px]">speed</span>
+</div>
+<div>
+<div class="text-display font-display text-on-surface">+14%</div>
+<p class="text-[11px] text-on-surface-variant mt-1">Vs last sprint</p>
+</div>
+</div>
+<!-- Due Today -->
+<div class="glass-card p-5 rounded-xl flex flex-col justify-between hover:shadow-lg transition-all cursor-default">
+<div class="flex items-center justify-between mb-4">
+<span class="text-label-md text-on-surface-variant font-medium">Due Today</span>
+<span class="material-symbols-outlined text-primary text-[20px]">event_busy</span>
+</div>
+<div>
+<div class="text-display font-display text-on-surface">6</div>
+<p class="text-[11px] text-on-surface-variant mt-1">Critical items</p>
+</div>
+</div>
+</section>
+<!-- Main Layout Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Team Workload Section (Col 8) -->
+<section class="lg:col-span-8 space-y-6">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-lg text-headline-lg flex items-center gap-2">
+                            Team Workload
+                            <span class="px-2 py-0.5 bg-surface-container text-label-md rounded text-on-surface-variant">Live</span>
+</h2>
+<button class="text-body-sm text-primary font-medium hover:underline">Manage Allocation</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Member: Farheen -->
+<div class="glass-card p-6 rounded-2xl hover:border-primary/40 transition-colors group">
+<div class="flex items-center gap-4 mb-6">
+<div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary-container ring-4 ring-primary-container/10">
+<img class="w-full h-full object-cover" data-alt="A detailed portrait of a female software developer named Farheen, focusing on her professional and friendly expression. She has medium-length dark hair and is wearing a minimalist grey knit sweater. The background is a blurred high-tech workspace with soft purple and blue ambient lighting to match the SprintFlow AI brand colors." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdCCH40DncivMigG1xFEAOrkOmkFbvQ0_tI6khXF1LUoLW0hapPxdTlKRpDsZebHXsyAddar63LB5djDXwxYVHhuL7uVh-Hn3X1TwzunZzAc4ws0DKPJqN00DW9NsR1HLCm1pNT_vb696ISym7C0tlZNM8y-z9FX3DIvJcIufcWtAIZiIxB6rQNbCtPHp-wAupYAatRSloGS_k0FDO3gWTEW1FDdTdZ20lIbQbq5gNWtrwAEcVoF76o9xANmX6sGHls25UxYmBwPDq"/>
+</div>
+<div>
+<p class="font-headline-md text-headline-md">Farheen</p>
+<p class="text-label-md text-on-surface-variant">Lead Frontend</p>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center text-body-sm mb-1">
+<span class="text-on-surface-variant">Workload Capacity</span>
+<span class="font-bold text-primary">60%</span>
+</div>
+<div class="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary transition-all duration-1000 ease-out group-hover:bg-primary-container" style="width: 60%"></div>
+</div>
+<div class="flex gap-2 mt-4">
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full bg-surface-container border border-white flex items-center justify-center text-[10px] font-bold">L</div>
+<div class="w-6 h-6 rounded-full bg-surface-container border border-white flex items-center justify-center text-[10px] font-bold">P</div>
+</div>
+<span class="text-label-md text-on-surface-variant self-center">+3 active tasks</span>
+</div>
+</div>
+</div>
+<!-- Member: Fatima -->
+<div class="glass-card p-6 rounded-2xl hover:border-primary/40 transition-colors group">
+<div class="flex items-center gap-4 mb-6">
+<div class="w-14 h-14 rounded-full overflow-hidden border-2 border-secondary/40 ring-4 ring-secondary/10">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a female software engineer named Fatima, wearing a modern hijab and glasses, looking focused and calm. The lighting is bright and clean, with a minimalist office aesthetic in the background. The overall mood is sophisticated and reliable, reflecting the productive brand identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPodzw8B62He3UhrkmPO8EhBNMXPkaF4kdoyPrkNYg8BzvELdCdFp0Kn3a4StN0QJLePBRg9z-CtR3Ulwiq8SHWZH9NJ47qFJUDg3-xIlHVBM--2rLnvdiX-kmUVjOE197IexyLU_nhhMDUEKVQR0yaxZqNs4DG0sdeLmBWPoiD4STOvjlWewFEaTk4r18xvm3w90LQ_cHeR2bb7ooQf8Ua5Jkgf3GiBs1AANoHAC2CTtiEHx3FIAMP8vjJTVlFZFx9SKvDrMAT-IC"/>
+</div>
+<div>
+<p class="font-headline-md text-headline-md">Fatima</p>
+<p class="text-label-md text-on-surface-variant">Backend Engineer</p>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center text-body-sm mb-1">
+<span class="text-on-surface-variant">Workload Capacity</span>
+<span class="font-bold text-secondary">40%</span>
+</div>
+<div class="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary transition-all duration-1000 ease-out group-hover:bg-secondary-container" style="width: 40%"></div>
+</div>
+<div class="flex gap-2 mt-4">
+<div class="w-6 h-6 rounded-full bg-surface-container border border-white flex items-center justify-center text-[10px] font-bold">A</div>
+<span class="text-label-md text-on-surface-variant self-center">+1 active task</span>
+</div>
+</div>
+</div>
+<!-- Member: Ali -->
+<div class="glass-card p-6 rounded-2xl hover:border-error/40 transition-colors group">
+<div class="flex items-center gap-4 mb-6">
+<div class="w-14 h-14 rounded-full overflow-hidden border-2 border-error/40 ring-4 ring-error/10">
+<img class="w-full h-full object-cover" data-alt="A portrait of a male product designer named Ali, featuring a sharp, clean-shaven look with short hair. He is wearing a dark charcoal turtleneck. The background is a minimalist design studio with soft daylight and subtle architectural lines, conveying an elegant and productive atmosphere consistent with the SaaS dashboard style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAi1lLDWXHEMiY8yUx1O4p3_VlDFLEhNAfmZ45s8GH228tMzHLm1pS3luPVDZd5iwrF3szgDOWnjEnSP2XYlP5QXmntSsxSY3ckt5z4_Jm4AvqVFmifvQpfNtjqmyWr0Mo7LBVbQAch_9B0zJSC-P6kn0yHvUdBQr9OQxKkPwzTLm1wCo9dtkHqdSLjz08aGPGTvQUMl0lMe8F6xb-hebakOetptX8626q1y2oIu4Lz9Oqa5VejcX5KdoWi42Ixdf98p0K5X4McRTHn"/>
+</div>
+<div>
+<p class="font-headline-md text-headline-md">Ali</p>
+<p class="text-label-md text-on-surface-variant">UI/UX Lead</p>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center text-body-sm mb-1">
+<span class="text-on-surface-variant font-medium text-error">Critical Load</span>
+<span class="font-bold text-error">85%</span>
+</div>
+<div class="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-error transition-all duration-1000 ease-out" style="width: 85%"></div>
+</div>
+<div class="flex gap-2 mt-4">
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full bg-surface-container border border-white flex items-center justify-center text-[10px] font-bold text-error">!</div>
+</div>
+<span class="text-label-md text-error self-center font-medium">Overloaded (8 tasks)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Additional Visualization Placeholder -->
+<div class="glass-card rounded-2xl p-6 h-64 relative overflow-hidden flex items-center justify-center border-dashed border-2 border-outline-variant">
+<div class="text-center space-y-2 relative z-10">
+<span class="material-symbols-outlined text-on-surface-variant/20 text-[64px]">bar_chart</span>
+<p class="text-body-md text-on-surface-variant font-medium">Sprint Velocity Over Time</p>
+<p class="text-label-md text-on-surface-variant/60">Advanced visualization loading...</p>
+</div>
+<!-- Decorative background texture -->
+<div class="absolute inset-0 opacity-[0.03] pointer-events-none" style="background-image: radial-gradient(#3525cd 1px, transparent 1px); background-size: 20px 20px;"></div>
+</div>
+</section>
+<!-- Recent Activity Feed (Col 4) -->
+<section class="lg:col-span-4 space-y-6">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-lg text-headline-lg">Activity</h2>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">filter_list</span>
+</div>
+<div class="glass-card rounded-2xl p-6 relative">
+<div class="absolute left-9 top-8 bottom-8 w-[1px] bg-outline-variant"></div>
+<div class="space-y-8 relative">
+<!-- Activity 1 -->
+<div class="flex gap-4 relative">
+<div class="relative z-10 w-6 h-6 rounded-full bg-surface border-2 border-primary flex items-center justify-center">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+</div>
+<div class="flex-1 -mt-1">
+<p class="text-body-md text-on-surface">
+<span class="font-bold">Farheen</span> moved <span class="font-medium text-primary">Login API</span> to <span class="px-1.5 py-0.5 bg-secondary-container/10 text-secondary text-[11px] rounded font-bold uppercase">Review</span>
+</p>
+<p class="text-label-md text-on-surface-variant mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> 2 min ago
+                                    </p>
+</div>
+</div>
+<!-- Activity 2 -->
+<div class="flex gap-4 relative">
+<div class="relative z-10 w-6 h-6 rounded-full bg-surface border-2 border-outline-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+</div>
+<div class="flex-1 -mt-1">
+<p class="text-body-md text-on-surface">
+<span class="font-bold">Fatima</span> commented on <span class="font-medium text-primary">Payment API</span>
+</p>
+<div class="mt-2 p-3 bg-surface-container rounded-lg italic text-body-sm text-on-surface-variant">
+                                        "Validation logic updated for Stripe v3 integration."
+                                    </div>
+<p class="text-label-md text-on-surface-variant mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> 5 min ago
+                                    </p>
+</div>
+</div>
+<!-- Activity 3 -->
+<div class="flex gap-4 relative">
+<div class="relative z-10 w-6 h-6 rounded-full bg-surface border-2 border-error flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px] text-error" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<div class="flex-1 -mt-1">
+<p class="text-body-md text-on-surface">
+<span class="font-bold">System</span> flagged <span class="font-bold text-error">Auth-Token Leak</span>
+</p>
+<p class="text-label-md text-on-surface-variant mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> 12 min ago
+                                    </p>
+</div>
+</div>
+<!-- Activity 4 -->
+<div class="flex gap-4 relative">
+<div class="relative z-10 w-6 h-6 rounded-full bg-surface border-2 border-outline-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant">person_add</span>
+</div>
+<div class="flex-1 -mt-1">
+<p class="text-body-md text-on-surface">
+<span class="font-bold">Ali</span> assigned <span class="font-medium text-primary">Checkout Mockups</span> to <span class="font-medium">Farheen</span>
+</p>
+<p class="text-label-md text-on-surface-variant mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> 28 min ago
+                                    </p>
+</div>
+</div>
+</div>
+<button class="w-full mt-8 py-3 rounded-xl border border-outline-variant text-body-sm font-medium hover:bg-surface-container transition-all active:scale-[0.98]">
+                            View All Activity
+                        </button>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Floating Action Button (FAB) - Priority Context: Dashboard Home -->
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 group">
+<span class="material-symbols-outlined text-[28px]">add</span>
+<span class="absolute right-full mr-4 bg-inverse-surface text-white px-3 py-1.5 rounded-lg text-label-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Create New Sprint</span>
+</button>
+<script>
+        // Micro-interactions for progress bars and counts
+        document.addEventListener('DOMContentLoaded', () => {
+            const counters = document.querySelectorAll('.text-display');
+            counters.forEach(counter => {
+                const target = parseInt(counter.innerText.replace(/[^0-9]/g, ''));
+                let count = 0;
+                const updateCount = () => {
+                    const increment = target / 30;
+                    if (count < target) {
+                        count += increment;
+                        if (counter.innerText.includes('%')) {
+                            counter.innerText = Math.ceil(count) + '%';
+                        } else if (counter.innerText.includes('+')) {
+                            counter.innerText = '+' + Math.ceil(count) + '%';
+                        } else {
+                            counter.innerText = Math.ceil(count);
+                        }
+                        setTimeout(updateCount, 20);
+                    } else {
+                        if (counter.innerText.includes('%')) {
+                            counter.innerText = target + '%';
+                        } else if (counter.innerText.includes('+')) {
+                            counter.innerText = '+' + target + '%';
+                        } else {
+                            counter.innerText = target;
+                        }
+                    }
+                };
+                updateCount();
+            });
+
+            // Card hover ripple-like effects can be added here
+            const cards = document.querySelectorAll('.glass-card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-4px)';
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0px)';
+                });
+            });
+        });
+    </script>
+</body></html>
