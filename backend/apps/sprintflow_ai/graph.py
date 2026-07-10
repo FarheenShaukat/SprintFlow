@@ -5,7 +5,7 @@ from .checkpoints import langgraph_runtime_available, save_checkpoint
 from .models import GeneratedPlan, SprintFlowAgentRun, SprintFlowConversation, SprintFlowMessage
 from .llm import generate_plan_with_groq, generate_plan_with_openai, has_llm_provider
 from .state import SprintFlowState
-from .tools import draft_plan_tool, load_project_context_tool, normalize_plan_tool, repair_plan_tool, validate_plan_tool
+from .tools import draft_plan_tool, draft_structured_plan_tool, load_project_context_tool, normalize_plan_tool, repair_plan_tool, validate_plan_tool
 
 
 def run_agent_turn(
@@ -93,7 +93,13 @@ def run_agent_turn(
             role=SprintFlowMessage.Role.ASSISTANT,
             message_type=SprintFlowMessage.MessageType.PLAN_CARD,
             content="I drafted a sprint plan. Review it before anything is written to the database.",
-            payload={"generated_plan_id": generated_plan.id, "plan": plan, "validation_errors": validation_errors, "provider": provider},
+            payload={
+                "generated_plan_id": generated_plan.id,
+                "plan": plan,
+                "validation_errors": validation_errors,
+                "provider": provider,
+                "status": generated_plan.status,
+            },
         ),
     ]
     return messages
@@ -151,6 +157,14 @@ def _draft_plan_with_providers(
     provider_preference: str = "groq",
 ) -> tuple[dict, str]:
     provider_errors = 0
+    structured_plan = draft_structured_plan_tool(
+        user_text=user_text,
+        uploaded_text=uploaded_text,
+        explicit_project_name=explicit_project_name,
+    )
+    if structured_plan:
+        return structured_plan, "structured"
+
     providers = ["openai", "groq"] if provider_preference == "openai" else ["groq", "openai"]
 
     for provider in providers:

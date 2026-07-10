@@ -74,7 +74,7 @@ def load_project_context_tool(project: Project | None) -> dict:
 
 def draft_plan_tool(*, user_text: str, uploaded_text: str = "", project_context: dict | None = None, explicit_project_name: str = "") -> dict:
     source = "\n\n".join(part.strip() for part in [user_text, uploaded_text] if part and part.strip())
-    structured_plan = _draft_from_structured_sprint_text(source, explicit_project_name)
+    structured_plan = draft_structured_plan_tool(user_text=user_text, uploaded_text=uploaded_text, explicit_project_name=explicit_project_name)
     if structured_plan:
         return structured_plan
 
@@ -310,6 +310,11 @@ def _derive_project_name(source: str) -> str:
     if not words:
         return "New AI Planned Project"
     return " ".join(words[:4]).title()[:180]
+
+
+def draft_structured_plan_tool(*, user_text: str, uploaded_text: str = "", explicit_project_name: str = "") -> dict | None:
+    source = "\n\n".join(part.strip() for part in [user_text, uploaded_text] if part and part.strip())
+    return _draft_from_structured_sprint_text(source, explicit_project_name)
 
 
 def _draft_from_structured_sprint_text(source: str, explicit_project_name: str = "") -> dict | None:

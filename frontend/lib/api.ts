@@ -375,6 +375,7 @@ export type SprintFlowApplyResult = {
   skipped_existing_sprints: number;
   skipped_existing_tasks: number;
   redirect_url: string;
+  already_applied?: boolean;
 };
 
 function body(data: unknown): RequestInit {

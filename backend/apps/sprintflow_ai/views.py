@@ -206,7 +206,20 @@ class SprintFlowApproveView(APIView):
         conversation = self._get_conversation(request, project_id, conversation_id)
         generated_plan = get_object_or_404(GeneratedPlan, pk=serializer.validated_data["generated_plan_id"], conversation=conversation)
         if generated_plan.status == GeneratedPlan.Status.APPLIED:
-            raise ValidationError("This plan has already been applied.")
+            project = generated_plan.applied_project or conversation.project
+            if not project:
+                raise ValidationError("This plan has already been applied.")
+            result = {
+                "project_id": project.id,
+                "sprint_count": 0,
+                "task_count": 0,
+                "skipped_existing_sprints": 0,
+                "skipped_existing_tasks": 0,
+                "redirect_url": f"/projects/{project.id}/board",
+                "already_applied": True,
+            }
+            _mark_plan_message_applied(conversation=conversation, generated_plan=generated_plan, project_id=project.id)
+            return Response(result)
         if "plan_json" in serializer.validated_data:
             generated_plan.plan_json = serializer.validated_data["plan_json"]
             generated_plan.validation_errors = validate_plan_tool(generated_plan.plan_json)
@@ -236,6 +249,7 @@ class SprintFlowApproveView(APIView):
             content=f"Created {result['sprint_count']} sprints and {result['task_count']} tasks.",
             payload=result,
         )
+        _mark_plan_message_applied(conversation=conversation, generated_plan=generated_plan, project_id=result["project_id"])
         return Response(result)
 
     def _get_conversation(self, request, project_id, conversation_id):
@@ -246,3 +260,17 @@ class SprintFlowApproveView(APIView):
         conversation = get_object_or_404(SprintFlowConversation, pk=conversation_id, project__isnull=True, created_by=request.user)
         _require_workspace_ai_admin(request.user, conversation.workspace_id)
         return conversation
+
+
+def _mark_plan_message_applied(*, conversation, generated_plan, project_id: int) -> None:
+    plan_messages = conversation.messages.filter(message_type=SprintFlowMessage.MessageType.PLAN_CARD)
+    for message in plan_messages:
+        payload = message.payload or {}
+        if int(payload.get("generated_plan_id") or 0) != generated_plan.id:
+            continue
+        message.payload = {
+            **payload,
+            "status": GeneratedPlan.Status.APPLIED,
+            "applied_project_id": project_id,
+        }
+        message.save(update_fields=["payload"])

@@ -66,6 +66,7 @@ PLAN_JSON_SCHEMA = {
 }
 
 PLAN_MAX_COMPLETION_TOKENS = 12000
+PLAN_PROVIDER_TIMEOUT_SECONDS = 45
 
 
 def has_llm_provider(api_key: str | None) -> bool:
@@ -119,7 +120,7 @@ def _generate_plan_with_openai_compatible(
 ) -> dict:
     from openai import OpenAI
 
-    client_kwargs = {"api_key": api_key}
+    client_kwargs = {"api_key": api_key, "timeout": PLAN_PROVIDER_TIMEOUT_SECONDS}
     if base_url:
         client_kwargs["base_url"] = base_url
     client = OpenAI(**client_kwargs)

@@ -226,6 +226,34 @@ class SprintFlowAiTests(APITestCase):
         )
 
     @override_settings(OPENAI_API_KEY="test-key", OPENAI_MODEL="test-model", GROQ_API_KEY="groq-key", GROQ_MODEL="groq-model")
+    @patch("apps.sprintflow_ai.graph.generate_plan_with_openai")
+    @patch("apps.sprintflow_ai.graph.generate_plan_with_groq")
+    def test_structured_sprint_outline_bypasses_llm_providers(self, mocked_groq, mocked_openai):
+        response = self.client.post(
+            f"/api/projects/{self.project.id}/sprintflow-ai/messages/",
+            {
+                "content": "Make this plan.",
+                "uploaded_text": """
+                SPRINT 0: Planning
+                - finalize scope
+
+                SPRINT 1: Build
+                - create API
+                """,
+                "ai_provider": "openai",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        mocked_openai.assert_not_called()
+        mocked_groq.assert_not_called()
+        self.assertEqual(
+            SprintFlowMessage.objects.filter(message_type=SprintFlowMessage.MessageType.PLAN_CARD).last().payload["provider"],
+            "structured",
+        )
+
+    @override_settings(OPENAI_API_KEY="test-key", OPENAI_MODEL="test-model", GROQ_API_KEY="groq-key", GROQ_MODEL="groq-model")
     @patch("apps.sprintflow_ai.graph.generate_plan_with_groq", side_effect=RuntimeError("Groq unavailable"))
     def test_message_falls_back_when_groq_fails(self, mocked_generate):
         response = self.client.post(
@@ -293,7 +321,7 @@ class SprintFlowAiTests(APITestCase):
         self.assertEqual(response.data["checkpoint"]["state"]["approval_status"], "awaiting")
         self.assertIsNotNone(response.data["latest_run"])
 
-    def test_duplicate_apply_is_blocked(self):
+    def test_duplicate_apply_is_idempotent(self):
         self.client.post(
             f"/api/projects/{self.project.id}/sprintflow-ai/messages/",
             {"content": "Build authentication and launch flow"},
@@ -313,8 +341,9 @@ class SprintFlowAiTests(APITestCase):
         )
 
         self.assertEqual(first.status_code, status.HTTP_200_OK)
-        self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("already been applied", str(second.data).lower())
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+        self.assertTrue(second.data["already_applied"])
+        self.assertEqual(second.data["project_id"], first.data["project_id"])
 
     def test_apply_skips_existing_sprint_and_task_names(self):
         self.client.post(
@@ -392,6 +421,63 @@ class SprintFlowAiTests(APITestCase):
 
         names = list(Project.objects.filter(workspace=self.workspace, name__startswith="Duplicate Planner").order_by("name").values_list("name", flat=True))
         self.assertEqual(names, ["Duplicate Planner", "Duplicate Planner (1)"])
+
+    def test_new_project_second_prompt_latest_plan_can_be_approved(self):
+        created = self.client.post(f"/api/workspaces/{self.workspace.id}/sprintflow-ai/new/")
+        conversation_id = created.data["id"]
+
+        first = self.client.post(
+            f"/api/sprintflow-ai/conversations/{conversation_id}/messages/",
+            {"content": "Create a starter project", "project_name": "Pilot Clone"},
+            format="json",
+        )
+        second = self.client.post(
+            f"/api/sprintflow-ai/conversations/{conversation_id}/messages/",
+            {"content": "Now make the plan stronger with auth and dashboard", "project_name": "Pilot Clone"},
+            format="json",
+        )
+        latest_plan = GeneratedPlan.objects.filter(conversation_id=conversation_id).first()
+
+        response = self.client.post(
+            f"/api/sprintflow-ai/conversations/{conversation_id}/approve/",
+            {"generated_plan_id": latest_plan.id},
+            format="json",
+        )
+
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(second.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreater(response.data["task_count"], 0)
+        self.assertTrue(SprintFlowMessage.objects.filter(conversation_id=conversation_id, message_type=SprintFlowMessage.MessageType.CONFIRMATION).exists())
+        conversation = SprintFlowConversation.objects.get(pk=conversation_id)
+        self.assertEqual(conversation.project_id, response.data["project_id"])
+
+    def test_approve_applied_plan_is_idempotent(self):
+        created = self.client.post(f"/api/workspaces/{self.workspace.id}/sprintflow-ai/new/")
+        conversation_id = created.data["id"]
+        self.client.post(
+            f"/api/sprintflow-ai/conversations/{conversation_id}/messages/",
+            {"content": "Create a starter project", "project_name": "Idempotent Plan"},
+            format="json",
+        )
+        plan = GeneratedPlan.objects.filter(conversation_id=conversation_id).first()
+
+        first = self.client.post(
+            f"/api/sprintflow-ai/conversations/{conversation_id}/approve/",
+            {"generated_plan_id": plan.id},
+            format="json",
+        )
+        second = self.client.post(
+            f"/api/projects/{first.data['project_id']}/sprintflow-ai/approve/",
+            {"generated_plan_id": plan.id},
+            format="json",
+        )
+
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+        self.assertTrue(second.data["already_applied"])
+        plan_message = SprintFlowMessage.objects.filter(conversation_id=conversation_id, message_type=SprintFlowMessage.MessageType.PLAN_CARD).first()
+        self.assertEqual(plan_message.payload["status"], GeneratedPlan.Status.APPLIED)
 
     def test_regular_member_cannot_start_new_project_ai_conversation(self):
         self.client.force_authenticate(self.member)

@@ -53,6 +53,7 @@ export default function SprintFlowAiPage() {
   const [error, setError] = useState("");
   const [adminOnly, setAdminOnly] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     async function loadProjects() {
@@ -74,16 +75,15 @@ export default function SprintFlowAiPage() {
         const result = await projectApi.list(workspaceId);
         setProjects(result.results);
         const canStart = memberList.results.some((member) => member.user.id === user.id && ["owner", "admin"].includes(member.role));
-        const aiProject = canStart ? result.results[0] : result.results.find((project) => project.user_project_role === "admin");
-        if (aiProject) {
+        const aiProject = result.results.find((project) => project.user_project_role === "admin");
+        if (canStart) {
+          await startNewConversation();
+        } else if (aiProject) {
           setSelection(aiProject.id);
           await openProjectConversation(aiProject.id);
         } else {
-          if (canStart) await startNewConversation();
-          else {
-            setAdminOnly(true);
-            setError("Only admins can access SprintFlow AI.");
-          }
+          setAdminOnly(true);
+          setError("Only admins can access SprintFlow AI.");
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Could not load SprintFlow AI.";
@@ -164,20 +164,27 @@ export default function SprintFlowAiPage() {
       return;
     }
     if (!message.trim() && !file) return;
+    const submittedMessage = message;
+    const submittedProjectName = projectName;
+    const submittedFile = file;
     const form = new FormData();
-    form.append("content", message);
+    form.append("content", submittedMessage);
     form.append("ai_provider", aiProvider);
-    if (projectName.trim()) form.append("project_name", projectName);
-    if (file) form.append("file", file);
+    if (submittedProjectName.trim()) form.append("project_name", submittedProjectName);
+    if (submittedFile) form.append("file", submittedFile);
     const userMessage: SprintFlowMessage = {
       id: Date.now(),
       role: "user",
       message_type: "text",
-      content: message || `Uploaded ${file?.name}`,
+      content: submittedMessage || `Uploaded ${submittedFile?.name}`,
       payload: {},
       created_at: new Date().toISOString()
     };
     setMessages((items) => [...items, userMessage]);
+    setMessage("");
+    setProjectName("");
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setSending(true);
     setError("");
     try {
@@ -190,10 +197,10 @@ export default function SprintFlowAiPage() {
         setAgentStep(events.current_step);
         setContextSummary(events.context_summary);
       }
-      setMessage("");
-      setProjectName("");
-      setFile(null);
     } catch (error) {
+      setMessage(submittedMessage);
+      setProjectName(submittedProjectName);
+      setFile(submittedFile);
       setError(error instanceof ApiError ? error.message : "Could not send message.");
     } finally {
       setSending(false);
@@ -213,19 +220,30 @@ export default function SprintFlowAiPage() {
         setProjects(projectResult.results);
         setSelection(result.project_id);
         setContextSummary(null);
+        setConversation({ ...conversation, project: result.project_id });
       }
       setMessages((items) => [
-        ...items,
+        ...items.map((item) => {
+          if (item.message_type !== "plan_card" || Number(item.payload.generated_plan_id) !== plan.id) return item;
+          return {
+            ...item,
+            payload: {
+              ...item.payload,
+              status: "applied",
+              applied_project_id: result.project_id
+            }
+          };
+        }),
         {
           id: Date.now(),
           role: "assistant",
           message_type: "confirmation",
-          content: `Created ${result.sprint_count} sprints and ${result.task_count} tasks.`,
+          content: result.already_applied ? "This plan was already applied." : `Created ${result.sprint_count} sprints and ${result.task_count} tasks.`,
           payload: result,
           created_at: new Date().toISOString()
         }
       ]);
-      router.push(result.redirect_url);
+      router.push(`/projects/${result.project_id}/board`);
     } catch (error) {
       setError(error instanceof ApiError ? error.message : "Could not apply plan.");
     } finally {
@@ -319,7 +337,7 @@ export default function SprintFlowAiPage() {
               <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline-variant bg-white px-3 py-2 text-sm font-medium hover:bg-surface-container-low">
                 <Paperclip size={16} />
                 <span>{file ? file.name.slice(0, 18) : "Attach"}</span>
-                <input type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+                <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
               </label>
               <Button type="submit" disabled={loading || sending || !conversation || (!message.trim() && !file)}>
                 {sending ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
@@ -348,17 +366,17 @@ export default function SprintFlowAiPage() {
 function MessageBubble({ message, onApprove, onPlanInstruction, approvingId }: { message: SprintFlowMessage; onApprove: (plan: GeneratedPlan) => void; onPlanInstruction: (instruction: string) => void; approvingId: number | null }) {
   const isUser = message.role === "user";
   if (message.message_type === "plan_card") {
-    const payload = message.payload as { generated_plan_id?: number; plan?: SprintFlowPlan; validation_errors?: string[] };
+    const payload = message.payload as { generated_plan_id?: number; plan?: SprintFlowPlan; validation_errors?: string[]; status?: GeneratedPlan["status"] };
     const plan: GeneratedPlan = {
       id: Number(payload.generated_plan_id),
       plan_json: payload.plan as SprintFlowPlan,
       validation_errors: payload.validation_errors ?? [],
-      status: "ready_for_approval",
+      status: payload.status ?? "ready_for_approval",
       applied_project: null,
       created_at: message.created_at,
       updated_at: message.created_at
     };
-    return <PlanCard plan={plan} provider={String(message.payload.provider || "fallback")} onApprove={onApprove} onPlanInstruction={onPlanInstruction} approving={approvingId === plan.id} />;
+    return <PlanCard plan={plan} provider={String(message.payload.provider || "fallback")} onApprove={onApprove} onPlanInstruction={onPlanInstruction} approving={approvingId === plan.id} approveLocked={approvingId !== null} />;
   }
   if (message.message_type === "context_summary") {
     const summary = message.payload as { sprints?: number; tasks?: number; overdue?: number; completion_rate?: number };
@@ -393,8 +411,9 @@ function MessageBubble({ message, onApprove, onPlanInstruction, approvingId }: {
   );
 }
 
-function PlanCard({ plan, provider, onApprove, onPlanInstruction, approving }: { plan: GeneratedPlan; provider: string; onApprove: (plan: GeneratedPlan) => void; onPlanInstruction: (instruction: string) => void; approving: boolean }) {
+function PlanCard({ plan, provider, onApprove, onPlanInstruction, approving, approveLocked }: { plan: GeneratedPlan; provider: string; onApprove: (plan: GeneratedPlan) => void; onPlanInstruction: (instruction: string) => void; approving: boolean; approveLocked: boolean }) {
   const data = plan.plan_json;
+  const applied = plan.status === "applied";
   return (
     <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-sm">
       <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -410,9 +429,9 @@ function PlanCard({ plan, provider, onApprove, onPlanInstruction, approving }: {
           <Button variant="secondary" onClick={() => onPlanInstruction(`Edit this plan: `)}>
             Edit
           </Button>
-          <Button onClick={() => onApprove(plan)} disabled={approving || Boolean(plan.validation_errors.length)}>
+          <Button onClick={() => onApprove(plan)} disabled={approveLocked || applied || Boolean(plan.validation_errors.length)}>
             {approving ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
-            Approve
+            {applied ? "Applied" : approving ? "Applying..." : "Approve"}
           </Button>
         </div>
       </div>
