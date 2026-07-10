@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type DragEvent } from "react";
 import { useParams } from "next/navigation";
 import { Filter, Maximize2, Minus, Plus } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
@@ -58,6 +58,8 @@ export default function KanbanPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [boardZoom, setBoardZoom] = useState(0.9);
+  const [draggingTask, setDraggingTask] = useState<Task | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<Status | null>(null);
 
   async function load(query = "") {
     setLoading(true);
@@ -93,6 +95,32 @@ export default function KanbanPage() {
     const updatedTask = await taskApi.update(taskId, values);
     setApiTasks((current) => current.map((item) => item.id === taskId ? updatedTask : item));
     setSelected(mapTask(updatedTask));
+  }
+
+  async function moveTaskToStatus(taskId: number, status: Status) {
+    const existingTask = apiTasks.find((task) => task.id === taskId);
+    if (!existingTask || existingTask.status === status) return;
+
+    const previousTasks = apiTasks;
+    setApiTasks((current) => current.map((task) => task.id === taskId ? { ...task, status } : task));
+    setError("");
+    try {
+      const updatedTask = await taskApi.update(taskId, { status });
+      setApiTasks((current) => current.map((task) => task.id === taskId ? updatedTask : task));
+      setSelected((current) => current?.id === taskId ? mapTask(updatedTask) : current);
+    } catch {
+      setApiTasks(previousTasks);
+      setError("Could not move task. Please try again.");
+    }
+  }
+
+  function handleColumnDrop(event: DragEvent<HTMLElement>, status: Status) {
+    event.preventDefault();
+    const taskId = Number(event.dataTransfer.getData("text/plain") || draggingTask?.id);
+    setDragOverStatus(null);
+    setDraggingTask(null);
+    if (!taskId) return;
+    void moveTaskToStatus(taskId, status);
   }
 
   const tasks = useMemo(() => apiTasks.map(mapTask), [apiTasks]);
@@ -147,12 +175,43 @@ export default function KanbanPage() {
           <div className="min-w-[1120px] transition-all duration-200" style={zoomStyle}>
             <div className="grid grid-cols-4 gap-4">
               {grouped.map((column) => (
-                <section key={column.id} className="min-w-0 rounded-xl border border-outline-variant bg-surface/85 p-3 shadow-sm backdrop-blur">
+                <section
+                  key={column.id}
+                  onDragEnter={() => setDragOverStatus(column.id)}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                    setDragOverStatus(column.id);
+                  }}
+                  onDragLeave={(event) => {
+                    if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragOverStatus(null);
+                  }}
+                  onDrop={(event) => handleColumnDrop(event, column.id)}
+                  className={`min-w-0 rounded-xl border p-3 shadow-sm backdrop-blur transition ${dragOverStatus === column.id ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-outline-variant bg-surface/85"}`}
+                >
                   <div className="mb-3 flex items-center justify-between">
                     <h2 className="font-mono text-sm font-bold uppercase tracking-wider">{column.title}</h2>
                     <span className="grid h-8 w-8 place-items-center rounded-full bg-surface-variant text-xs font-bold">{column.tasks.length}</span>
                   </div>
-                  <div className="max-h-[calc(100vh-22rem)] space-y-3 overflow-y-auto pr-1">{loading ? Array.from({ length: 3 }).map((_, index) => <RowSkeleton key={index} />) : column.tasks.map((task) => <TaskCard task={task} key={task.id} onOpen={setSelected} />)}</div>
+                  <div className="min-h-[280px] max-h-[calc(100vh-22rem)] space-y-3 overflow-y-auto pr-1">
+                    {loading ? Array.from({ length: 3 }).map((_, index) => <RowSkeleton key={index} />) : column.tasks.map((task) => (
+                      <TaskCard
+                        task={task}
+                        key={task.id}
+                        onOpen={setSelected}
+                        onDragStart={setDraggingTask}
+                        onDragEnd={() => {
+                          setDraggingTask(null);
+                          setDragOverStatus(null);
+                        }}
+                      />
+                    ))}
+                    {!loading && draggingTask && !column.tasks.length ? (
+                      <div className="grid min-h-32 place-items-center rounded-xl border border-dashed border-outline-variant text-sm text-on-surface-variant">
+                        Drop here
+                      </div>
+                    ) : null}
+                  </div>
                 </section>
               ))}
             </div>

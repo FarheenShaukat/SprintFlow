@@ -2,9 +2,29 @@ import { AlertTriangle, CalendarClock, MessageSquare, Paperclip } from "lucide-r
 import { Badge } from "@/components/ui/badge";
 import type { Task } from "@/types/domain";
 
-export function TaskCard({ task, onOpen }: { task: Task; onOpen?: (task: Task) => void }) {
+export function TaskCard({
+  task,
+  onOpen,
+  onDragStart,
+  onDragEnd
+}: {
+  task: Task;
+  onOpen?: (task: Task) => void;
+  onDragStart?: (task: Task) => void;
+  onDragEnd?: () => void;
+}) {
   return (
-    <button onClick={() => onOpen?.(task)} className="w-full rounded-xl border border-outline-variant bg-surface p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-soft">
+    <button
+      draggable
+      onClick={() => onOpen?.(task)}
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", String(task.id));
+        onDragStart?.(task);
+      }}
+      onDragEnd={onDragEnd}
+      className="w-full cursor-grab rounded-xl border border-outline-variant bg-surface p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-soft active:cursor-grabbing"
+    >
       <div className="mb-3 flex items-start justify-between gap-3">
         <Badge tone={task.priority === "critical" ? "critical" : task.priority}>{task.priority}</Badge>
         <span className="font-mono text-xs text-on-surface-variant">{task.key}</span>

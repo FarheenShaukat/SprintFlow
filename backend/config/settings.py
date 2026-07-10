@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "apps.attachments",
     "apps.activity",
     "apps.ai",
+    "apps.sprintflow_ai",
     "apps.reports",
 ]
 
@@ -136,6 +137,10 @@ SPECTACULAR_SETTINGS = {
 }
 
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
+OPENAI_MODEL = config("OPENAI_MODEL", default="gpt-4o-mini")
+GROQ_API_KEY = config("GROQ_API_KEY", default="")
+GROQ_MODEL = config("GROQ_MODEL", default="llama-3.3-70b-versatile")
+GROQ_BASE_URL = config("GROQ_BASE_URL", default="https://api.groq.com/openai/v1")
 SUPABASE_URL = config("SUPABASE_URL", default="")
 SUPABASE_SERVICE_ROLE_KEY = config("SUPABASE_SERVICE_ROLE_KEY", default="")
 

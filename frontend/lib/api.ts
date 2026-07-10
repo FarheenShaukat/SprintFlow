@@ -1,8 +1,10 @@
 function getApiUrl() {
-  const configuredUrl = process.env.NEXT_PUBLIC_API_URL || "/api";
-  if (typeof window === "undefined") return configuredUrl;
+  const configuredUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window === "undefined") return configuredUrl || "/api";
 
   const isLocalPage = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  if (!configuredUrl) return isLocalPage ? "http://localhost:8000/api" : "/api";
+
   const pointsToLocalBackend = configuredUrl.includes("localhost") || configuredUrl.includes("127.0.0.1");
 
   return !isLocalPage && pointsToLocalBackend ? "/api" : configuredUrl;
@@ -210,6 +212,7 @@ export type Project = {
   start_date: string | null;
   deadline: string | null;
   task_count: number;
+  user_project_role: "admin" | "member" | "viewer" | null;
 };
 
 export type ApiTask = {
@@ -271,6 +274,109 @@ export type ProjectReport = {
   workload: { assignee__id: number | null; assignee__full_name: string | null; active_tasks: number }[];
 };
 
+export type SprintFlowMessage = {
+  id: number;
+  role: "user" | "assistant";
+  message_type: "text" | "progress" | "plan_card" | "confirmation" | "context_summary";
+  content: string;
+  payload: Record<string, unknown>;
+  created_at: string;
+};
+
+export type GeneratedPlan = {
+  id: number;
+  plan_json: SprintFlowPlan;
+  validation_errors: string[];
+  status: "drafting" | "ready_for_approval" | "applied";
+  applied_project: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SprintFlowPlanTask = {
+  title: string;
+  description: string;
+  sequence: number;
+  priority: "low" | "medium" | "high" | "critical";
+  estimated_hours: number;
+  acceptance_criteria: string[];
+  subtasks: string[];
+  depends_on: string[];
+};
+
+export type SprintFlowPlan = {
+  project: {
+    name: string;
+    description: string;
+    goals: string[];
+    assumptions: string[];
+    risks: string[];
+  };
+  sprints: {
+    name: string;
+    goal: string;
+    sequence: number;
+    start_date: string;
+    end_date: string;
+    tasks: SprintFlowPlanTask[];
+  }[];
+};
+
+export type SprintFlowConversation = {
+  id: number;
+  workspace: number;
+  project: number | null;
+  thread_id: string;
+  status: "active" | "archived";
+  agent_status: "idle" | "running" | "awaiting_approval" | "applying" | "completed" | "failed";
+  current_step: string;
+  last_agent_error: string;
+  last_context_synced_at: string | null;
+  latest_plan: GeneratedPlan | null;
+  messages: SprintFlowMessage[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type SprintFlowEvents = {
+  conversation_id: number;
+  status: "active" | "archived";
+  agent_status: SprintFlowConversation["agent_status"];
+  current_step: string;
+  last_agent_error: string;
+  checkpoint: {
+    thread_id: string;
+    state: Record<string, unknown>;
+  };
+  latest_run: {
+    id: number;
+    status: "running" | "awaiting_approval" | "completed" | "failed";
+    current_step: string;
+    provider: string;
+    error: string;
+    metadata: Record<string, unknown>;
+    started_at: string;
+    completed_at: string | null;
+  } | null;
+  context_summary: {
+    sprints: number;
+    tasks: number;
+    overdue: number;
+    completion_rate: number;
+  };
+  latest_plan: GeneratedPlan | null;
+  pending_approval: boolean;
+};
+
+export type SprintFlowApplyResult = {
+  project_id: number;
+  sprint_count: number;
+  task_count: number;
+  skipped_existing_sprints: number;
+  skipped_existing_tasks: number;
+  redirect_url: string;
+};
+
 function body(data: unknown): RequestInit {
   return { method: "POST", body: JSON.stringify(data) };
 }
@@ -303,7 +409,16 @@ export const projectApi = {
   list: (workspaceId: number) => api<Paginated<Project>>(`/workspaces/${workspaceId}/projects/`),
   create: (workspaceId: number, data: { name: string; description?: string; status?: "active" | "archived" | "completed" }) =>
     api<Project>(`/workspaces/${workspaceId}/projects/`, body(data)),
-  members: (projectId: number) => api<Paginated<ProjectMember>>(`/projects/${projectId}/members/`)
+  update: (projectId: number, data: Partial<Project>) =>
+    api<Project>(`/projects/${projectId}/`, { method: "PATCH", body: JSON.stringify(data) }),
+  remove: (projectId: number) => api<void>(`/projects/${projectId}/`, { method: "DELETE" }),
+  members: (projectId: number) => api<Paginated<ProjectMember>>(`/projects/${projectId}/members/`),
+  addMember: (projectId: number, data: { user_id: number; role: "admin" | "member" | "viewer" }) =>
+    api<ProjectMember>(`/projects/${projectId}/members/`, body(data)),
+  updateMember: (projectId: number, membershipId: number, data: { role: "admin" | "member" | "viewer" }) =>
+    api<ProjectMember>(`/projects/${projectId}/members/${membershipId}/`, { method: "PATCH", body: JSON.stringify(data) }),
+  removeMember: (projectId: number, membershipId: number) =>
+    api<void>(`/projects/${projectId}/members/${membershipId}/`, { method: "DELETE" })
 };
 
 export const taskApi = {
@@ -329,4 +444,18 @@ export const subtaskApi = {
 
 export const reportApi = {
   get: (projectId: number) => api<ProjectReport>(`/projects/${projectId}/reports/`)
+};
+
+export const sprintFlowAiApi = {
+  getConversation: (projectId: number) => api<SprintFlowConversation>(`/projects/${projectId}/sprintflow-ai/`),
+  startNewProjectConversation: (workspaceId: number) => api<SprintFlowConversation>(`/workspaces/${workspaceId}/sprintflow-ai/new/`, { method: "POST" }),
+  sendProjectMessage: (projectId: number, data: FormData) =>
+    api<SprintFlowMessage[]>(`/projects/${projectId}/sprintflow-ai/messages/`, { method: "POST", body: data }),
+  sendNewProjectMessage: (conversationId: number, data: FormData) =>
+    api<SprintFlowMessage[]>(`/sprintflow-ai/conversations/${conversationId}/messages/`, { method: "POST", body: data }),
+  getProjectEvents: (projectId: number) => api<SprintFlowEvents>(`/projects/${projectId}/sprintflow-ai/events/`),
+  approveProjectPlan: (projectId: number, generatedPlanId: number, planJson?: SprintFlowPlan) =>
+    api<SprintFlowApplyResult>(`/projects/${projectId}/sprintflow-ai/approve/`, body({ generated_plan_id: generatedPlanId, plan_json: planJson })),
+  approveNewProjectPlan: (conversationId: number, generatedPlanId: number, planJson?: SprintFlowPlan) =>
+    api<SprintFlowApplyResult>(`/sprintflow-ai/conversations/${conversationId}/approve/`, body({ generated_plan_id: generatedPlanId, plan_json: planJson }))
 };

@@ -5,6 +5,7 @@ from rest_framework import viewsets
 from apps.activity.services import log_activity
 from apps.core.permissions import WorkspaceRolePermission
 from apps.workspaces.models import Workspace, WorkspaceMember
+from .access import accessible_projects_for, can_manage_workspace_projects, user_can_access_project
 from .models import Project, ProjectMember, Sprint
 from .serializers import ProjectMemberSerializer, ProjectSerializer, SprintSerializer
 
@@ -16,18 +17,38 @@ class ProjectViewSet(viewsets.ModelViewSet):
     ordering_fields = ["created_at", "deadline", "name"]
 
     def get_queryset(self):
-        qs = Project.objects.filter(workspace__memberships__user=self.request.user).annotate(task_count=Count("tasks")).distinct()
+        qs = accessible_projects_for(self.request.user).annotate(task_count=Count("tasks")).distinct().order_by("name", "id")
         workspace_id = self.kwargs.get("workspace_id")
         return qs.filter(workspace_id=workspace_id) if workspace_id else qs
 
     def perform_create(self, serializer):
         workspace = Workspace.objects.get(pk=self.kwargs["workspace_id"])
         workspace_role = WorkspaceMember.objects.filter(workspace=workspace, user=self.request.user).values_list("role", flat=True).first()
+        if not workspace_role:
+            raise PermissionDenied("You are not a member of this workspace.")
         if workspace_role == WorkspaceMember.Role.MEMBER and not workspace.allow_member_create_projects:
             raise PermissionDenied("Members are not allowed to create projects in this workspace.")
         project = serializer.save(workspace=workspace, created_by=self.request.user)
         ProjectMember.objects.update_or_create(project=project, user=self.request.user, defaults={"role": ProjectMember.Role.ADMIN})
         log_activity(user=self.request.user, workspace=workspace, project=project, action="project.created", new_value=project.name)
+
+    def _require_project_manager(self, project):
+        workspace_role = WorkspaceMember.objects.filter(workspace=project.workspace, user=self.request.user).values_list("role", flat=True).first()
+        project_role = ProjectMember.objects.filter(project=project, user=self.request.user).values_list("role", flat=True).first()
+        if workspace_role not in {WorkspaceMember.Role.OWNER, WorkspaceMember.Role.ADMIN} and project_role != ProjectMember.Role.ADMIN:
+            raise PermissionDenied("Only workspace admins or project admins can manage this project.")
+
+    def perform_update(self, serializer):
+        self._require_project_manager(serializer.instance)
+        project = serializer.save()
+        log_activity(user=self.request.user, workspace=project.workspace, project=project, action="project.updated", new_value=project.name)
+
+    def perform_destroy(self, instance):
+        self._require_project_manager(instance)
+        workspace = instance.workspace
+        name = instance.name
+        instance.delete()
+        log_activity(user=self.request.user, workspace=workspace, action="project.deleted", old_value=name)
 
 
 class SprintViewSet(viewsets.ModelViewSet):
@@ -36,12 +57,14 @@ class SprintViewSet(viewsets.ModelViewSet):
     ordering_fields = ["start_date", "end_date", "created_at"]
 
     def get_queryset(self):
-        qs = Sprint.objects.filter(project__workspace__memberships__user=self.request.user).select_related("project")
+        qs = Sprint.objects.filter(project__in=accessible_projects_for(self.request.user)).select_related("project")
         project_id = self.kwargs.get("project_id")
         return qs.filter(project_id=project_id) if project_id else qs
 
     def perform_create(self, serializer):
         project = Project.objects.get(pk=self.kwargs["project_id"])
+        if not user_can_access_project(self.request.user, project):
+            raise PermissionDenied("You do not have access to this project.")
         sprint = serializer.save(project=project)
         log_activity(user=self.request.user, workspace=project.workspace, project=project, action="sprint.created", new_value=sprint.name)
 
@@ -52,13 +75,10 @@ class ProjectMemberViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         project = Project.objects.filter(pk=self.kwargs["project_id"], workspace__memberships__user=self.request.user).first()
-        if project:
-            for membership in project.workspace.memberships.select_related("user"):
-                ProjectMember.objects.get_or_create(
-                    project=project,
-                    user=membership.user,
-                    defaults={"role": ProjectMember.Role.ADMIN if membership.role in {WorkspaceMember.Role.OWNER, WorkspaceMember.Role.ADMIN} else ProjectMember.Role.MEMBER},
-                )
+        if project and not can_manage_workspace_projects(self.request.user, project.workspace_id):
+            project_role = ProjectMember.objects.filter(project=project, user=self.request.user).values_list("role", flat=True).first()
+            if project_role != ProjectMember.Role.ADMIN:
+                return ProjectMember.objects.none()
         return ProjectMember.objects.filter(
             project_id=self.kwargs["project_id"],
             project__workspace__memberships__user=self.request.user,
@@ -73,6 +93,9 @@ class ProjectMemberViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         project = Project.objects.get(pk=self.kwargs["project_id"])
         self._require_project_manager(project)
+        user = serializer.validated_data["user"]
+        if not WorkspaceMember.objects.filter(workspace=project.workspace, user=user).exists():
+            raise PermissionDenied("Project access can only be granted to workspace members.")
         serializer.save(project=project)
 
     def perform_update(self, serializer):

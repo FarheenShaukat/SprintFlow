@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { authApi } from "@/lib/api";
+import { ApiError, authApi } from "@/lib/api";
 import { useAuthStore } from "@/store/auth-store";
 
 const schema = z.object({ email: z.string().email(), password: z.string().min(8) });
@@ -26,8 +26,8 @@ function LoginForm() {
       localStorage.setItem("sprintflow_refresh", result.refresh);
       setAccessToken(result.access);
       router.push(searchParams.get("next") || "/dashboard");
-    } catch {
-      setError("root", { message: "Invalid email or password." });
+    } catch (error) {
+      setError("root", { message: error instanceof ApiError ? error.message : "Invalid email or password." });
     }
   }
 

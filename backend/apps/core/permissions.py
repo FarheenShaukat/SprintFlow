@@ -50,6 +50,10 @@ class WorkspaceRolePermission(permissions.BasePermission):
             project_role = obj.project.project_memberships.filter(user=request.user).values_list("role", flat=True).first()
             return role in {WorkspaceMember.Role.OWNER, WorkspaceMember.Role.ADMIN} or project_role == "admin"
 
+        if model_name == "Project" and view.action in self.manager_actions:
+            project_role = obj.project_memberships.filter(user=request.user).values_list("role", flat=True).first()
+            return role in {WorkspaceMember.Role.OWNER, WorkspaceMember.Role.ADMIN} or project_role == "admin"
+
         if role == WorkspaceMember.Role.OWNER:
             return True
         if role == WorkspaceMember.Role.ADMIN:

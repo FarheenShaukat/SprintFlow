@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Bot, Calendar, Loader2, Paperclip, Send, Save } from "lucide-react";
+import { X, Bot, Calendar, Loader2, Send, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { commentApi, subtaskApi, type ApiComment, type ApiSubTask, type ApiTask, type ProjectMember, type User } from "@/lib/api";
@@ -123,14 +123,6 @@ export function TaskDetailModal({
           <div className="mt-8">
             <h3 className="mb-3 font-mono text-xs font-bold uppercase tracking-wider text-on-surface-variant">Description</h3>
             <textarea value={description} onChange={(event) => setDescription(event.target.value)} className="min-h-36 w-full rounded-xl border border-outline-variant bg-surface-container-low p-5 leading-7 outline-none focus:border-primary" placeholder="Add task description..." />
-          </div>
-
-          <div className="mt-8">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-on-surface-variant">Attachments ({task.attachments})</h3>
-              <Button variant="ghost" disabled><Paperclip size={16} /> Upload coming next</Button>
-            </div>
-            <p className="rounded-lg border border-dashed border-outline-variant p-4 text-sm text-on-surface-variant">Supabase Storage upload flow will be connected after core task workflow.</p>
           </div>
 
           <div className="mt-8 border-t border-outline-variant pt-8">

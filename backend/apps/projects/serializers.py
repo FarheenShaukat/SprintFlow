@@ -9,11 +9,18 @@ User = get_user_model()
 
 class ProjectSerializer(serializers.ModelSerializer):
     task_count = serializers.IntegerField(read_only=True)
+    user_project_role = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
-        fields = ["id", "workspace", "name", "description", "status", "start_date", "deadline", "created_by", "task_count", "created_at", "updated_at"]
+        fields = ["id", "workspace", "name", "description", "status", "start_date", "deadline", "created_by", "task_count", "user_project_role", "created_at", "updated_at"]
         read_only_fields = ["id", "workspace", "created_by", "created_at", "updated_at"]
+
+    def get_user_project_role(self, obj):
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return None
+        return obj.project_memberships.filter(user=request.user).values_list("role", flat=True).first()
 
 
 class SprintSerializer(serializers.ModelSerializer):

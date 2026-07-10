@@ -55,5 +55,6 @@ urlpatterns = [
     path("api/", include("apps.attachments.urls")),
     path("api/", include("apps.activity.urls")),
     path("api/", include("apps.ai.urls")),
+    path("api/", include("apps.sprintflow_ai.urls")),
     path("api/", include("apps.reports.urls")),
 ]

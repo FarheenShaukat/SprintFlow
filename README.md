@@ -114,7 +114,11 @@ All environment variables live in the root `.env`:
 - `DATABASE_URL`
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `GROQ_API_KEY`
+- `GROQ_MODEL`
+- `GROQ_BASE_URL`
 - `OPENAI_API_KEY`
+- `OPENAI_MODEL`
 - `NEXT_PUBLIC_API_URL`
 - `FRONTEND_URL`
 - `EMAIL_BACKEND`
