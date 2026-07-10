@@ -1,4 +1,5 @@
-from datetime import timedelta
+import re
+from datetime import date, timedelta
 
 from django.db import transaction
 from django.db.models import Count
@@ -72,7 +73,11 @@ def load_project_context_tool(project: Project | None) -> dict:
 
 
 def draft_plan_tool(*, user_text: str, uploaded_text: str = "", project_context: dict | None = None, explicit_project_name: str = "") -> dict:
-    source = " ".join(part.strip() for part in [user_text, uploaded_text] if part and part.strip())
+    source = "\n\n".join(part.strip() for part in [user_text, uploaded_text] if part and part.strip())
+    structured_plan = _draft_from_structured_sprint_text(source, explicit_project_name)
+    if structured_plan:
+        return structured_plan
+
     project_name = explicit_project_name or _derive_project_name(source)
     context = project_context or {}
     existing_sprints = context.get("sprints", [])
@@ -117,8 +122,8 @@ def validate_plan_tool(plan: dict) -> list[str]:
     sprints = plan.get("sprints", [])
     if not sprints:
         errors.append("At least one sprint is required.")
-    if len(sprints) > 12:
-        errors.append("Plan cannot contain more than 12 sprints.")
+    if len(sprints) > 20:
+        errors.append("Plan cannot contain more than 20 sprints.")
     total_tasks = 0
     for sprint in sprints:
         tasks = sprint.get("tasks", [])
@@ -185,9 +190,11 @@ def apply_plan_tool(*, conversation, generated_plan, user) -> dict:
         project = conversation.project
         if not project:
             workspace = Workspace.objects.select_for_update().get(pk=conversation.workspace_id)
+            project_name = _unique_project_name(workspace=workspace, desired_name=plan["project"]["name"])
+            plan["project"]["name"] = project_name
             project = Project.objects.create(
                 workspace=workspace,
-                name=plan["project"]["name"],
+                name=project_name,
                 description=plan["project"].get("description", ""),
                 created_by=user,
             )
@@ -277,11 +284,183 @@ def _normalize_key(value: str) -> str:
     return " ".join(str(value).strip().lower().split())
 
 
+def _unique_project_name(*, workspace: Workspace, desired_name: str) -> str:
+    base_name = (desired_name or "New AI Planned Project").strip()[:180] or "New AI Planned Project"
+    existing_names = {
+        _normalize_key(name)
+        for name in Project.objects.filter(workspace=workspace).values_list("name", flat=True)
+    }
+    if _normalize_key(base_name) not in existing_names:
+        return base_name
+
+    for index in range(1, 1000):
+        suffix = f" ({index})"
+        candidate = f"{base_name[:180 - len(suffix)]}{suffix}"
+        if _normalize_key(candidate) not in existing_names:
+            return candidate
+    return f"{base_name[:170]} ({timezone.now().strftime('%H%M%S')})"
+
+
 def _derive_project_name(source: str) -> str:
+    explicit_match = re.search(r"project\s+name\s*:\s*(?:\r?\n\s*)?(.+)", source, re.IGNORECASE)
+    if explicit_match:
+        return explicit_match.group(1).strip(" -:")[:180] or "New AI Planned Project"
+
     words = [word.strip(".,:;!?()[]{}") for word in source.split() if len(word.strip(".,:;!?()[]{}")) > 2]
     if not words:
         return "New AI Planned Project"
     return " ".join(words[:4]).title()[:180]
+
+
+def _draft_from_structured_sprint_text(source: str, explicit_project_name: str = "") -> dict | None:
+    if not source:
+        return None
+
+    sprint_heading = re.compile(r"^sprint\s+([0-9a-zA-Z._-]+)\s*[:\-]\s*(.+)$", re.IGNORECASE)
+    count_line = re.compile(r"^\d+\s+tasks?$", re.IGNORECASE)
+    lines = [line.strip() for line in source.splitlines()]
+    sprints = []
+    current = None
+    pending_title = ""
+    deliverable_next = False
+
+    def flush_pending() -> None:
+        nonlocal pending_title
+        if current and pending_title:
+            _append_structured_task(current, pending_title, _infer_priority(pending_title))
+            pending_title = ""
+
+    def flush_current() -> None:
+        nonlocal current
+        flush_pending()
+        if current and current["tasks"]:
+            sprints.append(current)
+        current = None
+
+    for raw_line in lines:
+        line = raw_line.strip()
+        if not line:
+            continue
+        if current and set(line) == {"="}:
+            flush_current()
+            deliverable_next = False
+            continue
+
+        match = sprint_heading.match(line)
+        if match:
+            flush_current()
+            sprint_label, sprint_title = match.groups()
+            sequence = _sequence_from_sprint_label(sprint_label, len(sprints) + 1)
+            start_date = timezone.localdate() + timedelta(days=len(sprints) * 14)
+            current = {
+                "name": f"Sprint {sprint_label}: {sprint_title.strip()}",
+                "goal": f"Complete {sprint_title.strip()}.",
+                "sequence": sequence,
+                "start_date": start_date.isoformat(),
+                "end_date": (start_date + timedelta(days=13)).isoformat(),
+                "tasks": [],
+            }
+            pending_title = ""
+            deliverable_next = False
+            continue
+
+        if not current:
+            continue
+
+        lower_line = line.lower()
+        if lower_line.startswith("duration:"):
+            days = _duration_days(line)
+            if days:
+                start_date = date.fromisoformat(current["start_date"])
+                current["end_date"] = (start_date + timedelta(days=days - 1)).isoformat()
+            continue
+        if lower_line.startswith("deliverable:"):
+            deliverable_next = True
+            continue
+        if deliverable_next:
+            current["goal"] = line
+            deliverable_next = False
+            continue
+        if count_line.match(line):
+            continue
+
+        priority = _priority_from_line(line)
+        if priority and pending_title:
+            _append_structured_task(current, pending_title, priority)
+            pending_title = ""
+            continue
+
+        title = line.lstrip("-*0123456789. ").strip()
+        if not title:
+            continue
+        if line.startswith(("-", "*")):
+            _append_structured_task(current, title, _infer_priority(title))
+        else:
+            flush_pending()
+            pending_title = title
+
+    flush_current()
+    if not sprints:
+        return None
+
+    return {
+        "project": {
+            "name": explicit_project_name or _derive_project_name(source),
+            "description": _project_description_from_source(source),
+            "goals": ["Build the project through the complete sprint sequence from the uploaded plan."],
+            "assumptions": ["Sprint and task structure was parsed from the uploaded plan outline."],
+            "risks": ["Review generated estimates, priorities, and acceptance criteria before approval."],
+        },
+        "sprints": sprints[:20],
+    }
+
+
+def _append_structured_task(sprint: dict, title: str, priority: str) -> None:
+    sequence = len(sprint["tasks"]) + 1
+    sprint["tasks"].append(_task(
+        title=title[:220],
+        description=f"Implement and verify: {title}.",
+        sequence=sequence,
+        priority=priority,
+    ))
+
+
+def _priority_from_line(line: str) -> str | None:
+    normalized = line.strip().lower()
+    aliases = {"hig": "high", "hi": "high"}
+    if normalized in {"low", "medium", "high", "critical"}:
+        return normalized
+    return aliases.get(normalized)
+
+
+def _infer_priority(title: str) -> str:
+    lower = title.lower()
+    if any(term in lower for term in ["auth", "security", "jwt", "quota", "deploy", "production", "database", "connect"]):
+        return "high"
+    if any(term in lower for term in ["test", "documentation", "diagram", "branching", "optional"]):
+        return "medium"
+    return "medium"
+
+
+def _sequence_from_sprint_label(label: str, fallback: int) -> int:
+    try:
+        return int(label) + 1
+    except (TypeError, ValueError):
+        return fallback
+
+
+def _duration_days(line: str) -> int | None:
+    numbers = [int(value) for value in re.findall(r"\d+", line)]
+    if not numbers:
+        return None
+    return max(numbers)
+
+
+def _project_description_from_source(source: str) -> str:
+    match = re.search(r"Project\s+Type\s*:\s*(?:\r?\n\s*)?(.+)", source, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()[:500]
+    return source.strip()[:500] or "AI-generated project plan."
 
 
 def _derive_themes(source: str) -> list[dict]:

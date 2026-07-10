@@ -23,6 +23,7 @@ import {
 } from "@/lib/api";
 
 type Selection = "new" | number;
+type AiProvider = "groq" | "openai";
 type ContextSummary = {
   sprints: number;
   tasks: number;
@@ -42,6 +43,7 @@ export default function SprintFlowAiPage() {
   const [messages, setMessages] = useState<SprintFlowMessage[]>([]);
   const [message, setMessage] = useState("");
   const [projectName, setProjectName] = useState("");
+  const [aiProvider, setAiProvider] = useState<AiProvider>("groq");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -164,6 +166,7 @@ export default function SprintFlowAiPage() {
     if (!message.trim() && !file) return;
     const form = new FormData();
     form.append("content", message);
+    form.append("ai_provider", aiProvider);
     if (projectName.trim()) form.append("project_name", projectName);
     if (file) form.append("file", file);
     const userMessage: SprintFlowMessage = {
@@ -324,6 +327,18 @@ export default function SprintFlowAiPage() {
               </Button>
             </div>
           </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+            <label htmlFor="sprintflow-provider" className="font-medium text-on-surface-variant">Model</label>
+            <select
+              id="sprintflow-provider"
+              value={aiProvider}
+              onChange={(event) => setAiProvider(event.target.value as AiProvider)}
+              className="rounded-lg border border-outline-variant bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+            >
+              <option value="groq">Groq</option>
+              <option value="openai">OpenAI</option>
+            </select>
+          </div>
         </form>
       </div>
     </AppShell>
@@ -411,7 +426,7 @@ function PlanCard({ plan, provider, onApprove, onPlanInstruction, approving }: {
             </div>
             <p className="mt-1 text-sm text-on-surface-variant">{sprint.goal}</p>
             <div className="mt-3 space-y-2">
-              {sprint.tasks.slice(0, 6).map((task) => (
+              {sprint.tasks.map((task) => (
                 <div key={task.title} className="rounded-lg bg-surface-container-low p-3 text-sm">
                   <div className="flex flex-wrap items-center gap-2">
                     <strong>{task.title}</strong>

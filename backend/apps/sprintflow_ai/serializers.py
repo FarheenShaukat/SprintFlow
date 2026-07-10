@@ -1,3 +1,4 @@
+from django.db import models
 from rest_framework import serializers
 
 from .models import GeneratedPlan, SprintFlowConversation, SprintFlowMessage
@@ -32,8 +33,14 @@ class SprintFlowConversationSerializer(serializers.ModelSerializer):
 
 
 class SendMessageSerializer(serializers.Serializer):
+    class AiProvider(models.TextChoices):
+        GROQ = "groq", "Groq"
+        OPENAI = "openai", "OpenAI"
+
     content = serializers.CharField(required=False, allow_blank=True)
+    uploaded_text = serializers.CharField(required=False, allow_blank=True)
     project_name = serializers.CharField(required=False, allow_blank=True, max_length=180)
+    ai_provider = serializers.ChoiceField(choices=AiProvider.choices, required=False, default=AiProvider.GROQ)
     file = serializers.FileField(required=False)
 
 

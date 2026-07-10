@@ -3,12 +3,19 @@ from django.conf import settings
 
 from .checkpoints import langgraph_runtime_available, save_checkpoint
 from .models import GeneratedPlan, SprintFlowAgentRun, SprintFlowConversation, SprintFlowMessage
-from .llm import generate_plan_with_groq, has_llm_provider
+from .llm import generate_plan_with_groq, generate_plan_with_openai, has_llm_provider
 from .state import SprintFlowState
 from .tools import draft_plan_tool, load_project_context_tool, normalize_plan_tool, repair_plan_tool, validate_plan_tool
 
 
-def run_agent_turn(*, conversation: SprintFlowConversation, user_text: str, uploaded_text: str = "", explicit_project_name: str = "") -> list[SprintFlowMessage]:
+def run_agent_turn(
+    *,
+    conversation: SprintFlowConversation,
+    user_text: str,
+    uploaded_text: str = "",
+    explicit_project_name: str = "",
+    provider_preference: str = "groq",
+) -> list[SprintFlowMessage]:
     run = SprintFlowAgentRun.objects.create(conversation=conversation, current_step="reading_input")
     _set_conversation_status(conversation, SprintFlowConversation.AgentStatus.RUNNING, "reading_input")
     progress_messages = [
@@ -30,6 +37,7 @@ def run_agent_turn(*, conversation: SprintFlowConversation, user_text: str, uplo
             "user_text": user_text,
             "uploaded_text": uploaded_text,
             "explicit_project_name": explicit_project_name,
+            "provider_preference": provider_preference,
             "project_context": project_context,
             "messages": list(conversation.messages.values("role", "message_type", "content", "payload", "created_at")[:80]),
         })
@@ -97,6 +105,7 @@ def draft_agent_state(state: SprintFlowState) -> SprintFlowState:
         uploaded_text=state.get("uploaded_text", ""),
         project_context=state.get("project_context", {}),
         explicit_project_name=state.get("explicit_project_name", ""),
+        provider_preference=state.get("provider_preference", "groq"),
     )
     plan = normalize_plan_tool(plan)
     current_project = state.get("project_context", {}).get("project")
@@ -133,24 +142,49 @@ def _run_planning_graph(state: SprintFlowState) -> SprintFlowState:
     return result if result.get("draft_plan") else draft_agent_state(state)
 
 
-def _draft_plan_with_providers(*, user_text: str, uploaded_text: str, project_context: dict, explicit_project_name: str = "") -> tuple[dict, str]:
+def _draft_plan_with_providers(
+    *,
+    user_text: str,
+    uploaded_text: str,
+    project_context: dict,
+    explicit_project_name: str = "",
+    provider_preference: str = "groq",
+) -> tuple[dict, str]:
     provider_errors = 0
-    if has_llm_provider(getattr(settings, "GROQ_API_KEY", "")):
-        try:
-            return (
-                generate_plan_with_groq(
-                    api_key=settings.GROQ_API_KEY,
-                    model=getattr(settings, "GROQ_MODEL", "llama-3.3-70b-versatile"),
-                    base_url=getattr(settings, "GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
-                    user_text=user_text,
-                    uploaded_text=uploaded_text,
-                    project_context=project_context,
-                    explicit_project_name=explicit_project_name,
-                ),
-                "groq",
-            )
-        except Exception:
-            provider_errors += 1
+    providers = ["openai", "groq"] if provider_preference == "openai" else ["groq", "openai"]
+
+    for provider in providers:
+        if provider == "groq" and has_llm_provider(getattr(settings, "GROQ_API_KEY", "")):
+            try:
+                return (
+                    generate_plan_with_groq(
+                        api_key=settings.GROQ_API_KEY,
+                        model=getattr(settings, "GROQ_MODEL", "llama-3.3-70b-versatile"),
+                        base_url=getattr(settings, "GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
+                        user_text=user_text,
+                        uploaded_text=uploaded_text,
+                        project_context=project_context,
+                        explicit_project_name=explicit_project_name,
+                    ),
+                    "groq",
+                )
+            except Exception:
+                provider_errors += 1
+        if provider == "openai" and has_llm_provider(getattr(settings, "OPENAI_API_KEY", "")):
+            try:
+                return (
+                    generate_plan_with_openai(
+                        api_key=settings.OPENAI_API_KEY,
+                        model=getattr(settings, "OPENAI_MODEL", "gpt-4o-mini"),
+                        user_text=user_text,
+                        uploaded_text=uploaded_text,
+                        project_context=project_context,
+                        explicit_project_name=explicit_project_name,
+                    ),
+                    "openai",
+                )
+            except Exception:
+                provider_errors += 1
 
     return (
         draft_plan_tool(

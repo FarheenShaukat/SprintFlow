@@ -11,6 +11,7 @@ class SprintFlowState(TypedDict, total=False):
     uploaded_text: str
     user_text: str
     explicit_project_name: str
+    provider_preference: str
     draft_plan: dict
     provider: str
     validation_errors: list[str]

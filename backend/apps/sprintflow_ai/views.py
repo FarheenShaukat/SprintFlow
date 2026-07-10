@@ -89,14 +89,16 @@ class SprintFlowMessageView(APIView):
         serializer.is_valid(raise_exception=True)
         conversation = self._get_conversation(request, project_id, conversation_id)
         content = serializer.validated_data.get("content", "")
+        raw_uploaded_text = serializer.validated_data.get("uploaded_text", "")
         uploaded_file = serializer.validated_data.get("file")
-        if not content.strip() and not uploaded_file:
+        if not content.strip() and not uploaded_file and not raw_uploaded_text.strip():
             raise ValidationError("Send a message or attach a file.")
 
         try:
-            uploaded_text = extract_uploaded_text(uploaded_file)
+            extracted_text = extract_uploaded_text(uploaded_file)
         except ValueError as exc:
             raise ValidationError(str(exc)) from exc
+        uploaded_text = "\n\n".join(part for part in [raw_uploaded_text.strip(), extracted_text.strip()] if part)
 
         SprintFlowMessage.objects.create(
             conversation=conversation,
@@ -109,6 +111,7 @@ class SprintFlowMessageView(APIView):
             conversation=conversation,
             user_text=content,
             uploaded_text=uploaded_text,
+            provider_preference=serializer.validated_data.get("ai_provider", "groq"),
             explicit_project_name=_resolve_explicit_project_name(
                 conversation=conversation,
                 serializer_value=serializer.validated_data.get("project_name", ""),
