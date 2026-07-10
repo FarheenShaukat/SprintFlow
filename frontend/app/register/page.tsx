@@ -17,6 +17,8 @@ function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isInvite = Boolean(searchParams.get("next") && searchParams.get("email"));
+  const next = searchParams.get("next");
+  const loginHref = next ? `/login?next=${encodeURIComponent(next)}` : "/login";
   const setAccessToken = useAuthStore((state) => state.setAccessToken);
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) });
 
@@ -27,7 +29,7 @@ function RegisterForm() {
       const result = await authApi.login({ email, password: values.password });
       localStorage.setItem("sprintflow_refresh", result.refresh);
       setAccessToken(result.access);
-      router.push(searchParams.get("next") || "/dashboard");
+      router.push(next || "/dashboard");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not create account.";
       setError("root", { message });
@@ -57,6 +59,12 @@ function RegisterForm() {
         {errors.password ? <p className="mt-1 text-xs text-error">{errors.password.message}</p> : null}
         {errors.root ? <p className="mt-4 rounded-lg bg-error-container p-3 text-sm text-error">{errors.root.message}</p> : null}
         <Button className="mt-6 w-full" type="submit" disabled={isSubmitting}>{isSubmitting ? "Creating..." : "Create Account"}</Button>
+        <div className="mt-5 border-t border-outline-variant pt-5 text-center">
+          <p className="text-sm text-on-surface-variant">Already have an account?</p>
+          <Link href={loginHref} className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-outline-variant px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary/10">
+            Sign in
+          </Link>
+        </div>
       </form>
     </main>
   );

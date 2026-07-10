@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RowSkeleton } from "@/components/ui/skeleton";
 import { TaskCard } from "@/components/task-card";
 import { TaskDetailModal } from "@/components/task-detail-modal";
-import { authApi, projectApi, taskApi, type ApiTask, type ProjectMember, type User } from "@/lib/api";
+import { authApi, projectApi, taskApi, workspaceApi, type ApiTask, type Project, type ProjectMember, type User, type Workspace } from "@/lib/api";
 import type { Status, Task } from "@/types/domain";
 
 const columns: { id: Status; title: string }[] = [
@@ -47,6 +47,8 @@ function mapTask(task: ApiTask): Task {
 export default function KanbanPage() {
   const params = useParams<{ id: string }>();
   const projectId = Number(params.id);
+  const [project, setProject] = useState<Project | null>(null);
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [apiTasks, setApiTasks] = useState<ApiTask[]>([]);
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -77,10 +79,29 @@ export default function KanbanPage() {
   useEffect(() => {
     if (projectId) {
       void load(filter);
-      projectApi.members(projectId).then((result) => setMembers(result.results)).catch(() => setMembers([]));
-      authApi.me().then(setCurrentUser).catch(() => setCurrentUser(null));
     }
   }, [projectId, filter]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    projectApi.members(projectId).then((result) => setMembers(result.results)).catch(() => setMembers([]));
+    authApi.me().then(setCurrentUser).catch(() => setCurrentUser(null));
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    projectApi.get(projectId)
+      .then((project) => {
+        setProject(project);
+        return workspaceApi.list().then((result) => {
+          setWorkspace(result.results.find((workspace) => workspace.id === project.workspace) ?? null);
+        });
+      })
+      .catch(() => {
+        setProject(null);
+        setWorkspace(null);
+      });
+  }, [projectId]);
 
   async function createTask() {
     if (!title.trim()) return;
@@ -137,8 +158,8 @@ export default function KanbanPage() {
         <div className="border-b border-outline-variant bg-surface px-6 py-5">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <p className="text-sm text-on-surface-variant">Project / Live Kanban</p>
-              <h1 className="text-3xl font-bold leading-tight">Project Board</h1>
+              <p className="text-sm text-on-surface-variant">{workspace ? `${workspace.name} / Live Kanban` : "Live Kanban"}</p>
+              <h1 className="text-3xl font-bold leading-tight">{project?.name ?? "Project Board"}</h1>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex flex-wrap gap-2 rounded-xl border border-outline-variant bg-surface-container-low p-1">

@@ -19,13 +19,15 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const setAccessToken = useAuthStore((state) => state.setAccessToken);
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  const next = searchParams.get("next");
+  const registerHref = next ? `/register?next=${encodeURIComponent(next)}` : "/register";
 
   async function onSubmit(values: FormValues) {
     try {
       const result = await authApi.login({ email: values.email.trim().toLowerCase(), password: values.password });
       localStorage.setItem("sprintflow_refresh", result.refresh);
       setAccessToken(result.access);
-      router.push(searchParams.get("next") || "/dashboard");
+      router.push(next || "/dashboard");
     } catch (error) {
       setError("root", { message: error instanceof ApiError ? error.message : "Invalid email or password." });
     }
@@ -51,7 +53,12 @@ function LoginForm() {
         {errors.password ? <p className="mt-1 text-xs text-error">{errors.password.message}</p> : null}
         {errors.root ? <p className="mt-4 rounded-lg bg-error-container p-3 text-sm text-error">{errors.root.message}</p> : null}
         <Button className="mt-6 w-full" type="submit" disabled={isSubmitting}>{isSubmitting ? "Signing in..." : "Sign In"}</Button>
-        <p className="mt-5 text-center text-sm text-on-surface-variant">No account? <Link className="font-semibold text-primary" href="/register">Create one</Link></p>
+        <div className="mt-5 border-t border-outline-variant pt-5 text-center">
+          <p className="text-sm text-on-surface-variant">No account yet?</p>
+          <Link href={registerHref} className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-outline-variant px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary/10">
+            Sign up
+          </Link>
+        </div>
       </form>
     </main>
   );

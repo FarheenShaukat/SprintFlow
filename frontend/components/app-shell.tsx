@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AlertTriangle, BarChart3, Bolt, Bot, ChevronsLeft, ChevronsRight, ExternalLink, FolderKanban, LayoutDashboard, LogOut, MessageSquareText, Plus, Search, Send, Settings, X, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { clearAuthTokens, type Workspace, workspaceApi } from "@/lib/api";
+import { clearAuthTokens, projectApi, type Project, type Workspace, workspaceApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -23,6 +23,7 @@ export function AppShell({ children, active = "Dashboard" }: { children: React.R
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceDescription, setWorkspaceDescription] = useState("");
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [fallbackWorkspace, setFallbackWorkspace] = useState<Workspace | null>(null);
   const [ready, setReady] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
@@ -52,15 +53,42 @@ export function AppShell({ children, active = "Dashboard" }: { children: React.R
   }, []);
 
   useEffect(() => {
-    const match = pathname.match(/\/workspace\/(\d+)/);
-    if (!match) {
+    let cancelled = false;
+    const workspaceMatch = pathname.match(/\/workspace\/(\d+)/);
+    const projectMatch = pathname.match(/\/projects\/(\d+)/);
+
+    if (!workspaceMatch && !projectMatch) {
       setCurrentWorkspace(null);
+      setCurrentProject(null);
       return;
     }
-    const workspaceId = Number(match[1]);
-    workspaceApi.list()
-      .then((result) => setCurrentWorkspace(result.results.find((workspace) => workspace.id === workspaceId) ?? null))
-      .catch(() => setCurrentWorkspace(null));
+
+    async function loadRouteContext() {
+      try {
+        const workspaces = await workspaceApi.list();
+        if (projectMatch) {
+          const project = await projectApi.get(Number(projectMatch[1]));
+          if (cancelled) return;
+          setCurrentProject(project);
+          setCurrentWorkspace(workspaces.results.find((workspace) => workspace.id === project.workspace) ?? null);
+          return;
+        }
+
+        const workspaceId = Number(workspaceMatch?.[1]);
+        if (cancelled) return;
+        setCurrentProject(null);
+        setCurrentWorkspace(workspaces.results.find((workspace) => workspace.id === workspaceId) ?? null);
+      } catch {
+        if (cancelled) return;
+        setCurrentWorkspace(null);
+        setCurrentProject(null);
+      }
+    }
+
+    void loadRouteContext();
+    return () => {
+      cancelled = true;
+    };
   }, [pathname]);
 
   async function createWorkspace() {
@@ -83,6 +111,7 @@ export function AppShell({ children, active = "Dashboard" }: { children: React.R
   }
 
   const sprintAiWorkspace = currentWorkspace ?? fallbackWorkspace;
+  const workspaceProjectLabel = currentProject && currentWorkspace ? `${currentWorkspace.name} / ${currentProject.name}` : currentWorkspace?.name;
 
   if (!ready) {
     return <main className="grid min-h-screen place-items-center bg-background text-on-surface">Checking session...</main>;
@@ -146,12 +175,12 @@ export function AppShell({ children, active = "Dashboard" }: { children: React.R
         </nav>
         <div className="shrink-0 space-y-3 border-t border-outline-variant bg-surface p-4">
           {currentWorkspace ? (
-            <Link href={`/workspace/${currentWorkspace.id}`} className={cn("flex items-center gap-3 rounded-lg border border-outline-variant bg-surface-container-low p-3 text-sm hover:border-primary", collapsed && "justify-center px-2")} title={currentWorkspace.name}>
+            <Link href={currentProject ? `/projects/${currentProject.id}/board` : `/workspace/${currentWorkspace.id}`} className={cn("flex items-center gap-3 rounded-lg border border-outline-variant bg-surface-container-low p-3 text-sm hover:border-primary", collapsed && "justify-center px-2")} title={workspaceProjectLabel}>
               <FolderKanban size={18} />
               {!collapsed ? (
                 <span className="min-w-0">
-                  <span className="block text-[10px] uppercase tracking-wider text-on-surface-variant">Workspace</span>
-                  <strong className="block truncate">{currentWorkspace.name}</strong>
+                  <span className="block text-[10px] uppercase tracking-wider text-on-surface-variant">{currentProject ? "Workspace / Project" : "Workspace"}</span>
+                  <strong className="block truncate">{workspaceProjectLabel}</strong>
                 </span>
               ) : null}
             </Link>

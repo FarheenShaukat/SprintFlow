@@ -408,6 +408,7 @@ export const invitationApi = {
 
 export const projectApi = {
   list: (workspaceId: number) => api<Paginated<Project>>(`/workspaces/${workspaceId}/projects/`),
+  get: (projectId: number) => api<Project>(`/projects/${projectId}/`),
   create: (workspaceId: number, data: { name: string; description?: string; status?: "active" | "archived" | "completed" }) =>
     api<Project>(`/workspaces/${workspaceId}/projects/`, body(data)),
   update: (projectId: number, data: Partial<Project>) =>
