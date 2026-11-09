@@ -91,6 +91,10 @@ The root `vercel.json` routes `/mcp`, `/oauth/*`, and `/.well-known/*` to the Py
 
    Discovery returns JSON. The unauthenticated MCP request must return **401** with a `WWW-Authenticate` resource metadata URL. Then connect and sign in from each client to verify authenticated tools.
 
+   Check `/api/health/db` as well: `oauth_ready` must be `true`. A healthy database connection alone does not prove the OAuth migrations have run. If `oauth_ready` is false, run `python manage.py migrate --noinput` using the production database environment before connecting clients.
+
+OAuth discovery advertises endpoints without trailing slashes because Vercel canonicalizes URLs that way. Django accepts both forms directly, so login and token POSTs do not enter a redirect loop or lose their bodies.
+
 OAuth uses authorization codes with S256 PKCE, user consent, one-hour access tokens, rotating refresh tokens, resource audience checks and revocation. The server never accepts a user's identity from a tool argument. Each tool calls the same REST view and permissions as the app.
 
 Periodically run `python manage.py cleartokens` to remove expired OAuth records. Changes to the public hostname require updating `MCP_PUBLIC_URL`, Vercel routing/environment, and reconnecting clients.

@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
 from django.db.utils import DatabaseError
 from django.http import JsonResponse
 from django.urls import include, path
@@ -19,6 +20,8 @@ def database_health_check(request):
             cursor.execute("select 1")
             cursor.fetchone()
             tables = connection.introspection.table_names(cursor)
+        executor = MigrationExecutor(connection)
+        oauth_ready = not executor.migration_plan(executor.loader.graph.leaf_nodes("oauth2_provider"))
     except DatabaseError as exc:
         return JsonResponse({"status": "error", "message": str(exc)}, status=500)
     return JsonResponse({
@@ -26,6 +29,7 @@ def database_health_check(request):
         "engine": connection.settings_dict["ENGINE"],
         "migrated": "django_migrations" in tables,
         "has_users_table": "accounts_user" in tables,
+        "oauth_ready": oauth_ready,
     })
 
 urlpatterns = [

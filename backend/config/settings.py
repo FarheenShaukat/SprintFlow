@@ -162,7 +162,7 @@ SESSION_COOKIE_SECURE = IS_VERCEL or not DEBUG
 CSRF_COOKIE_SECURE = IS_VERCEL or not DEBUG
 if IS_VERCEL:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-LOGIN_URL = "/oauth/login/"
+LOGIN_URL = "/oauth/login"
 OAUTH2_PROVIDER = {
     "SCOPES": {"sprintflow": "Read and manage your SprintFlow projects, tasks and teams"},
     "DEFAULT_SCOPES": ["sprintflow"],
