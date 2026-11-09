@@ -1,14 +1,19 @@
+import uuid
+
+from django.db import IntegrityError, transaction
 from django.db.models import Count
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import EmailMultiAlternatives
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.activity.services import log_activity
 from apps.core.permissions import WorkspaceRolePermission
+from apps.projects.models import ProjectMember
 from .models import Workspace, WorkspaceInvitation, WorkspaceMember
 from .serializers import InvitationAcceptSerializer, WorkspaceInvitationSerializer, WorkspaceInviteSerializer, WorkspaceMemberSerializer, WorkspaceSerializer
 
@@ -21,11 +26,12 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     basename = "workspace"
 
     def get_queryset(self):
+        workspace_ids = WorkspaceMember.objects.filter(user=self.request.user).values("workspace_id")
         return (
-            Workspace.objects.filter(memberships__user=self.request.user)
+            Workspace.objects.filter(pk__in=workspace_ids)
             .select_related("owner")
-            .annotate(member_count=Count("memberships"))
-            .distinct()
+            .annotate(member_count=Count("memberships", distinct=True))
+            .order_by("name", "id")
         )
 
     def perform_create(self, serializer):
@@ -43,7 +49,10 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
     permission_classes = [WorkspaceRolePermission]
 
     def get_queryset(self):
-        return WorkspaceMember.objects.filter(workspace_id=self.kwargs["workspace_id"]).select_related("user", "workspace")
+        workspace_ids = WorkspaceMember.objects.filter(user=self.request.user).values("workspace_id")
+        return WorkspaceMember.objects.filter(
+            workspace_id=self.kwargs["workspace_id"], workspace_id__in=workspace_ids,
+        ).select_related("user", "workspace").order_by("id")
 
     def _require_workspace_manager(self, workspace):
         role = WorkspaceMember.objects.filter(workspace=workspace, user=self.request.user).values_list("role", flat=True).first()
@@ -53,7 +62,7 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         workspace = Workspace.objects.get(pk=self.kwargs["workspace_id"])
         self._require_workspace_manager(workspace)
-        member = serializer.save(workspace=workspace)
+        member = self._save_member(serializer, workspace)
         log_activity(
             user=self.request.user,
             workspace=workspace,
@@ -64,7 +73,7 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         workspace = serializer.instance.workspace
         self._require_workspace_manager(workspace)
-        member = serializer.save()
+        member = self._save_member(serializer, workspace)
         log_activity(
             user=self.request.user,
             workspace=workspace,
@@ -72,10 +81,34 @@ class WorkspaceMemberViewSet(viewsets.ModelViewSet):
             new_value=f"{member.user.email}:{member.role}",
         )
 
+    def _save_member(self, serializer, workspace):
+        instance = serializer.instance
+        user = serializer.validated_data.get("user") or instance.user
+        role = serializer.validated_data.get("role", instance.role if instance else WorkspaceMember.Role.MEMBER)
+        if role == WorkspaceMember.Role.OWNER and user.pk != workspace.owner_id:
+            raise ValidationError({"role": "Only the workspace owner can have the owner role."})
+        if instance and instance.user_id == workspace.owner_id:
+            if user.pk != workspace.owner_id or role != WorkspaceMember.Role.OWNER:
+                raise ValidationError({"role": "The workspace owner cannot be replaced or demoted."})
+        duplicates = WorkspaceMember.objects.filter(workspace=workspace, user=user)
+        if instance:
+            duplicates = duplicates.exclude(pk=instance.pk)
+        if duplicates.exists():
+            raise ValidationError({"user_id": "This user is already a workspace member."})
+        try:
+            with transaction.atomic():
+                return serializer.save(workspace=workspace)
+        except IntegrityError as exc:
+            raise ValidationError({"user_id": "This user is already a workspace member."}) from exc
+
+    @transaction.atomic
     def perform_destroy(self, instance):
         workspace = instance.workspace
         self._require_workspace_manager(workspace)
+        if instance.user_id == workspace.owner_id:
+            raise ValidationError("The workspace owner cannot be removed.")
         email = instance.user.email
+        ProjectMember.objects.filter(project__workspace=workspace, user_id=instance.user_id).delete()
         instance.delete()
         log_activity(
             user=self.request.user,
@@ -89,11 +122,11 @@ class WorkspaceInviteView(APIView):
     permission_classes = [WorkspaceRolePermission]
 
     def get(self, request, workspace_id):
-        workspace = Workspace.objects.get(pk=workspace_id, memberships__user=request.user)
+        workspace = get_object_or_404(Workspace, pk=workspace_id, memberships__user=request.user)
         role = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).values_list("role", flat=True).first()
         if role == WorkspaceMember.Role.MEMBER:
             raise PermissionDenied("Only workspace owners or admins can view invitations.")
-        invitations = WorkspaceInvitation.objects.filter(workspace=workspace).select_related("invited_by", "accepted_by")
+        invitations = WorkspaceInvitation.objects.filter(workspace=workspace).select_related("invited_by", "accepted_by").order_by("-created_at", "-id")
         return Response({
             "count": invitations.count(),
             "next": None,
@@ -104,7 +137,7 @@ class WorkspaceInviteView(APIView):
     def post(self, request, workspace_id):
         serializer = WorkspaceInviteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        workspace = Workspace.objects.get(pk=workspace_id, memberships__user=request.user)
+        workspace = get_object_or_404(Workspace, pk=workspace_id, memberships__user=request.user)
         role_for_inviter = WorkspaceMember.objects.filter(workspace=workspace, user=request.user).values_list("role", flat=True).first()
         if role_for_inviter == WorkspaceMember.Role.MEMBER and not workspace.allow_member_invite_members:
             raise PermissionDenied("Members are not allowed to invite people to this workspace.")
@@ -112,10 +145,13 @@ class WorkspaceInviteView(APIView):
         email = serializer.validated_data["email"].lower()
         full_name = serializer.validated_data.get("full_name") or email.split("@")[0]
         role = serializer.validated_data["role"]
+        if role_for_inviter == WorkspaceMember.Role.MEMBER and role != WorkspaceMember.Role.MEMBER:
+            raise PermissionDenied("Members can only invite other members.")
         invitation, _ = WorkspaceInvitation.objects.update_or_create(
             workspace=workspace,
             email=email,
             defaults={
+                "token": uuid.uuid4(),
                 "full_name": full_name,
                 "role": role,
                 "status": WorkspaceInvitation.Status.PENDING,
@@ -166,7 +202,7 @@ class InvitationAcceptView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, token):
-        invitation = WorkspaceInvitation.objects.select_related("workspace").get(token=token)
+        invitation = get_object_or_404(WorkspaceInvitation.objects.select_related("workspace"), token=token)
         user = User.objects.filter(email=invitation.email).first()
         return Response({
             "email": invitation.email,
@@ -178,7 +214,7 @@ class InvitationAcceptView(APIView):
         })
 
     def post(self, request, token):
-        invitation = WorkspaceInvitation.objects.select_related("workspace").get(token=token)
+        invitation = get_object_or_404(WorkspaceInvitation.objects.select_related("workspace"), token=token)
         user, created = User.objects.get_or_create(
             email=invitation.email,
             defaults={"full_name": invitation.full_name or invitation.email.split("@")[0], "is_active": True},

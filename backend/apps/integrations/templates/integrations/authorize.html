@@ -1,0 +1,24 @@
+{% extends "oauth2_provider/base.html" %}
+{% block title %}Connect to SprintFlow{% endblock %}
+{% block content %}
+<main class="block-center">
+    {% if error %}
+        <h1>Connection could not be authorized</h1>
+        <p>{{ error.description }}</p>
+    {% else %}
+        <h1>Connect {{ application.name|default:"this MCP client" }} to SprintFlow?</h1>
+        <p>Signed in as {{ request.user.email }}.</p>
+        <p>This client will be able to:</p>
+        <ul>{% for description in scopes_descriptions %}<li>{{ description }}</li>{% endfor %}</ul>
+        <p>Only connect clients you trust. You can revoke access from
+            <a href="{% url 'oauth2_provider:authorized-token-list' %}">your connected applications</a>.</p>
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}{% if field.is_hidden %}{{ field }}{% endif %}{% endfor %}
+            {{ form.errors }}
+            <button type="submit" class="btn">Cancel</button>
+            <button type="submit" name="allow" value="Authorize" class="btn btn-primary">Authorize</button>
+        </form>
+    {% endif %}
+</main>
+{% endblock %}

@@ -1,11 +1,12 @@
-from django.db.models import Count
-from rest_framework.exceptions import PermissionDenied
+from django.db import IntegrityError, transaction
+from django.db.models import Count, F, OuterRef, Subquery
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework import viewsets
 
 from apps.activity.services import log_activity
 from apps.core.permissions import WorkspaceRolePermission
 from apps.workspaces.models import Workspace, WorkspaceMember
-from .access import accessible_projects_for, can_manage_workspace_projects, user_can_access_project
+from .access import accessible_projects_for, user_can_access_project
 from .models import Project, ProjectMember, Sprint
 from .serializers import ProjectMemberSerializer, ProjectSerializer, SprintSerializer
 
@@ -17,7 +18,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
     ordering_fields = ["created_at", "deadline", "name"]
 
     def get_queryset(self):
-        qs = accessible_projects_for(self.request.user).annotate(task_count=Count("tasks")).distinct().order_by("name", "id")
+        project_role = ProjectMember.objects.filter(project_id=OuterRef("pk"), user=self.request.user).values("role")[:1]
+        qs = accessible_projects_for(self.request.user).annotate(
+            task_count=Count("tasks", distinct=True),
+            requester_project_role=Subquery(project_role),
+        ).select_related("workspace").order_by("name", "id")
         workspace_id = self.kwargs.get("workspace_id")
         return qs.filter(workspace_id=workspace_id) if workspace_id else qs
 
@@ -57,7 +62,7 @@ class SprintViewSet(viewsets.ModelViewSet):
     ordering_fields = ["start_date", "end_date", "created_at"]
 
     def get_queryset(self):
-        qs = Sprint.objects.filter(project__in=accessible_projects_for(self.request.user)).select_related("project")
+        qs = Sprint.objects.filter(project__in=accessible_projects_for(self.request.user)).select_related("project").order_by("start_date", "id")
         project_id = self.kwargs.get("project_id")
         return qs.filter(project_id=project_id) if project_id else qs
 
@@ -65,6 +70,7 @@ class SprintViewSet(viewsets.ModelViewSet):
         project = Project.objects.get(pk=self.kwargs["project_id"])
         if not user_can_access_project(self.request.user, project):
             raise PermissionDenied("You do not have access to this project.")
+        self.check_object_permissions(self.request, Sprint(project=project))
         sprint = serializer.save(project=project)
         log_activity(user=self.request.user, workspace=project.workspace, project=project, action="sprint.created", new_value=sprint.name)
 
@@ -74,33 +80,41 @@ class ProjectMemberViewSet(viewsets.ModelViewSet):
     permission_classes = [WorkspaceRolePermission]
 
     def get_queryset(self):
-        project = Project.objects.filter(pk=self.kwargs["project_id"], workspace__memberships__user=self.request.user).first()
-        if project and not can_manage_workspace_projects(self.request.user, project.workspace_id):
-            project_role = ProjectMember.objects.filter(project=project, user=self.request.user).values_list("role", flat=True).first()
-            if project_role != ProjectMember.Role.ADMIN:
-                return ProjectMember.objects.none()
         return ProjectMember.objects.filter(
             project_id=self.kwargs["project_id"],
-            project__workspace__memberships__user=self.request.user,
-        ).select_related("user", "project")
+            project__in=accessible_projects_for(self.request.user),
+            user__workspace_memberships__workspace_id=F("project__workspace_id"),
+        ).select_related("user", "project__workspace").order_by("id")
 
     def _require_project_manager(self, project):
         role = ProjectMember.objects.filter(project=project, user=self.request.user).values_list("role", flat=True).first()
         workspace_role = WorkspaceMember.objects.filter(workspace=project.workspace, user=self.request.user).values_list("role", flat=True).first()
-        if role != ProjectMember.Role.ADMIN and workspace_role not in {WorkspaceMember.Role.OWNER, WorkspaceMember.Role.ADMIN}:
+        if not workspace_role or (role != ProjectMember.Role.ADMIN and workspace_role not in {WorkspaceMember.Role.OWNER, WorkspaceMember.Role.ADMIN}):
             raise PermissionDenied("Only project admins or workspace admins can manage people in this project.")
+
+    def _save_member(self, serializer, project):
+        user = serializer.validated_data.get("user") or serializer.instance.user
+        if not WorkspaceMember.objects.filter(workspace_id=project.workspace_id, user=user).exists():
+            raise ValidationError({"user_id": "Project access can only be granted to workspace members."})
+        duplicates = ProjectMember.objects.filter(project=project, user=user)
+        if serializer.instance:
+            duplicates = duplicates.exclude(pk=serializer.instance.pk)
+        if duplicates.exists():
+            raise ValidationError({"user_id": "This user is already a project member."})
+        try:
+            with transaction.atomic():
+                serializer.save(project=project)
+        except IntegrityError as exc:
+            raise ValidationError({"user_id": "This user is already a project member."}) from exc
 
     def perform_create(self, serializer):
         project = Project.objects.get(pk=self.kwargs["project_id"])
         self._require_project_manager(project)
-        user = serializer.validated_data["user"]
-        if not WorkspaceMember.objects.filter(workspace=project.workspace, user=user).exists():
-            raise PermissionDenied("Project access can only be granted to workspace members.")
-        serializer.save(project=project)
+        self._save_member(serializer, project)
 
     def perform_update(self, serializer):
         self._require_project_manager(serializer.instance.project)
-        serializer.save()
+        self._save_member(serializer, serializer.instance.project)
 
     def perform_destroy(self, instance):
         self._require_project_manager(instance.project)

@@ -153,6 +153,26 @@ export type Paginated<T> = {
   results: T[];
 };
 
+export async function apiAllPages<T>(path: string): Promise<Paginated<T>> {
+  const [pathname, query = ""] = path.split("?");
+  const params = new URLSearchParams(query);
+  const results: T[] = [];
+  const seenPages = new Set<string>();
+
+  for (let page = 1; page <= 1000; page++) {
+    params.set("page", String(page));
+    const response = await api<Paginated<T>>(`${pathname}?${params}`);
+    const signature = JSON.stringify(response.results);
+    if (seenPages.has(signature) || (response.next && !response.results.length)) {
+      throw new Error("Invalid API pagination. Please refresh and try again.");
+    }
+    seenPages.add(signature);
+    results.push(...response.results);
+    if (!response.next) return { count: results.length, next: null, previous: null, results };
+  }
+  throw new Error("API pagination limit reached. Please narrow your filters.");
+}
+
 export type User = {
   id: number;
   full_name: string;
@@ -391,12 +411,12 @@ export const authApi = {
 };
 
 export const workspaceApi = {
-  list: () => api<Paginated<Workspace>>("/workspaces/"),
+  list: () => apiAllPages<Workspace>("/workspaces/"),
   create: (data: { name: string; description?: string }) => api<Workspace>("/workspaces/", body(data)),
   update: (workspaceId: number, data: Partial<Workspace>) =>
     api<Workspace>(`/workspaces/${workspaceId}/`, { method: "PATCH", body: JSON.stringify(data) }),
-  members: (workspaceId: number) => api<Paginated<WorkspaceMember>>(`/workspaces/${workspaceId}/members/`),
-  invitations: (workspaceId: number) => api<Paginated<WorkspaceInvitation>>(`/workspaces/${workspaceId}/invitations/`),
+  members: (workspaceId: number) => apiAllPages<WorkspaceMember>(`/workspaces/${workspaceId}/members/`),
+  invitations: (workspaceId: number) => apiAllPages<WorkspaceInvitation>(`/workspaces/${workspaceId}/invitations/`),
   invite: (workspaceId: number, data: { email: string; full_name?: string; role: "admin" | "member" }) =>
     api<WorkspaceInvitation>(`/workspaces/${workspaceId}/invitations/`, body(data))
 };
@@ -407,14 +427,14 @@ export const invitationApi = {
 };
 
 export const projectApi = {
-  list: (workspaceId: number) => api<Paginated<Project>>(`/workspaces/${workspaceId}/projects/`),
+  list: (workspaceId: number) => apiAllPages<Project>(`/workspaces/${workspaceId}/projects/`),
   get: (projectId: number) => api<Project>(`/projects/${projectId}/`),
   create: (workspaceId: number, data: { name: string; description?: string; status?: "active" | "archived" | "completed" }) =>
     api<Project>(`/workspaces/${workspaceId}/projects/`, body(data)),
   update: (projectId: number, data: Partial<Project>) =>
     api<Project>(`/projects/${projectId}/`, { method: "PATCH", body: JSON.stringify(data) }),
   remove: (projectId: number) => api<void>(`/projects/${projectId}/`, { method: "DELETE" }),
-  members: (projectId: number) => api<Paginated<ProjectMember>>(`/projects/${projectId}/members/`),
+  members: (projectId: number) => apiAllPages<ProjectMember>(`/projects/${projectId}/members/`),
   addMember: (projectId: number, data: { user_id: number; role: "admin" | "member" | "viewer" }) =>
     api<ProjectMember>(`/projects/${projectId}/members/`, body(data)),
   updateMember: (projectId: number, membershipId: number, data: { role: "admin" | "member" | "viewer" }) =>
@@ -424,7 +444,7 @@ export const projectApi = {
 };
 
 export const taskApi = {
-  list: (projectId: number, query = "") => api<Paginated<ApiTask>>(`/projects/${projectId}/tasks/${query}`),
+  list: (projectId: number, query = "") => apiAllPages<ApiTask>(`/projects/${projectId}/tasks/${query}`),
   create: (projectId: number, data: Partial<ApiTask> & { title: string }) => api<ApiTask>(`/projects/${projectId}/tasks/`, body(data)),
   update: (taskId: number, data: Partial<ApiTask>) =>
     api<ApiTask>(`/tasks/${taskId}/`, { method: "PATCH", body: JSON.stringify(data) })

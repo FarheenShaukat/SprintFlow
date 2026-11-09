@@ -4,12 +4,23 @@ from django.utils import timezone
 from apps.tasks.models import Task
 
 
-def sprint_health_score(tasks):
-    total = tasks.count()
-    completed = tasks.filter(status=Task.Status.DONE).count()
-    overdue = tasks.exclude(status=Task.Status.DONE).filter(due_date__lt=timezone.localdate()).count()
-    blocked = tasks.filter(is_blocked=True).count()
-    critical_pending = tasks.exclude(status=Task.Status.DONE).filter(priority=Task.Priority.CRITICAL).count()
+def task_summary(tasks):
+    pending = ~Q(status=Task.Status.DONE)
+    return tasks.aggregate(
+        total=Count("id"),
+        completed=Count("id", filter=Q(status=Task.Status.DONE)),
+        overdue=Count("id", filter=pending & Q(due_date__lt=timezone.localdate())),
+        blocked=Count("id", filter=Q(is_blocked=True)),
+        critical_pending=Count("id", filter=pending & Q(priority=Task.Priority.CRITICAL)),
+    )
+
+
+def health_from_summary(summary):
+    total = summary["total"]
+    completed = summary["completed"]
+    overdue = summary["overdue"]
+    blocked = summary["blocked"]
+    critical_pending = summary["critical_pending"]
     completion_rate = (completed / total) if total else 0
 
     score = 100
@@ -21,12 +32,15 @@ def sprint_health_score(tasks):
     return max(0, min(100, score))
 
 
+def sprint_health_score(tasks):
+    return health_from_summary(task_summary(tasks))
+
+
 def project_report(project):
     tasks = Task.objects.filter(project=project)
-    total = tasks.count()
-    completed = tasks.filter(status=Task.Status.DONE).count()
-    overdue = tasks.exclude(status=Task.Status.DONE).filter(due_date__lt=timezone.localdate()).count()
-    blocked = tasks.filter(is_blocked=True).count()
+    summary = task_summary(tasks)
+    total = summary["total"]
+    completed = summary["completed"]
     by_status = list(tasks.values("status").annotate(count=Count("id")).order_by("status"))
     by_priority = list(tasks.values("priority").annotate(count=Count("id")).order_by("priority"))
     workload = list(
@@ -34,12 +48,12 @@ def project_report(project):
         .annotate(active_tasks=Count("id", filter=~Q(status=Task.Status.DONE)))
         .order_by("-active_tasks")
     )
-    health = sprint_health_score(tasks)
+    health = health_from_summary(summary)
     return {
         "total_tasks": total,
         "completed_tasks": completed,
-        "overdue_tasks": overdue,
-        "blocked_tasks": blocked,
+        "overdue_tasks": summary["overdue"],
+        "blocked_tasks": summary["blocked"],
         "completion_rate": round((completed / total) * 100, 2) if total else 0,
         "sprint_health_score": health,
         "tasks_by_status": by_status,

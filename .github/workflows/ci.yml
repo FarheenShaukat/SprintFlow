@@ -64,5 +64,8 @@ jobs:
       - name: Typecheck frontend
         run: npm run typecheck
 
+      - name: Test API pagination
+        run: node --test lib/api.test.cjs
+
       - name: Build frontend
         run: npm run build

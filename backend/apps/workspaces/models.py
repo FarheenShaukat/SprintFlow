@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 import uuid
 
@@ -62,16 +62,24 @@ class WorkspaceInvitation(models.Model):
         unique_together = ("workspace", "email")
         ordering = ["-created_at"]
 
+    @transaction.atomic
     def accept(self, user):
+        invitation = type(self).objects.select_for_update().get(pk=self.pk)
+        if invitation.status == self.Status.ACCEPTED:
+            self.refresh_from_db()
+            return
+        role = invitation.role if invitation.role in {WorkspaceMember.Role.ADMIN, WorkspaceMember.Role.MEMBER} else WorkspaceMember.Role.MEMBER
+        if user.pk == self.workspace.owner_id:
+            role = WorkspaceMember.Role.OWNER
+        WorkspaceMember.objects.get_or_create(
+            workspace=self.workspace,
+            user=user,
+            defaults={"role": role},
+        )
         self.status = self.Status.ACCEPTED
         self.accepted_by = user
         self.accepted_at = timezone.now()
         self.save(update_fields=["status", "accepted_by", "accepted_at", "updated_at"])
-        WorkspaceMember.objects.update_or_create(
-            workspace=self.workspace,
-            user=user,
-            defaults={"role": self.role},
-        )
 
     def __str__(self) -> str:
         return f"{self.email} invited to {self.workspace}"

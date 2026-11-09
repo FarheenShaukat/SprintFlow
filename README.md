@@ -18,6 +18,13 @@ This is a portfolio-grade full-stack project for an Associate Software Engineer 
 - Activity logs for important workflow events
 - Reports for workload, overdue tasks, sprint health, task status, and priority
 - Swagger/OpenAPI docs through drf-spectacular
+- Remote MCP connector for Claude and Codex with per-user OAuth login
+- Shared team projects with explicit member/viewer access
+
+## Claude and Codex Connector
+
+See [docs/MCP.md](docs/MCP.md) for deployment, sign-in, supported tools and team sharing.
+After deploying this change and running migrations, use `https://sprint-flow-five.vercel.app/mcp` as the connector URL.
 
 ## Smart AI Features
 
@@ -92,9 +99,8 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-python manage.py makemigrations
 python manage.py migrate
-python manage.py runserver
+python -m uvicorn config.asgi:application --reload
 ```
 
 ```bash
@@ -121,6 +127,7 @@ All environment variables live in the root `.env`:
 - `OPENAI_MODEL`
 - `NEXT_PUBLIC_API_URL`
 - `FRONTEND_URL`
+- `MCP_PUBLIC_URL`
 - `EMAIL_BACKEND`
 - `EMAIL_HOST`
 - `EMAIL_PORT`

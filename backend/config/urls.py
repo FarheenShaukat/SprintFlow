@@ -29,6 +29,7 @@ def database_health_check(request):
     })
 
 urlpatterns = [
+    path("", include("apps.integrations.urls")),
     path("admin/", admin.site.urls),
     path("api/health", health_check, name="health-check-no-slash"),
     path("api/health/", health_check, name="health-check"),
