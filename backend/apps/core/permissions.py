@@ -14,6 +14,8 @@ class WorkspaceRolePermission(permissions.BasePermission):
             return obj.workspace_id
         if obj and hasattr(obj, "project") and hasattr(obj.project, "workspace_id"):
             return obj.project.workspace_id
+        if obj and hasattr(obj, "task"):
+            return obj.task.project.workspace_id
         return (
             view.kwargs.get("workspace_id")
             or view.kwargs.get("pk")
@@ -37,6 +39,8 @@ class WorkspaceRolePermission(permissions.BasePermission):
             .first()
         )
         model_name = obj.__class__.__name__
+        if not role:
+            return False
         if model_name == "Workspace":
             if view.action == "destroy":
                 return role == WorkspaceMember.Role.OWNER
@@ -46,13 +50,33 @@ class WorkspaceRolePermission(permissions.BasePermission):
         if model_name == "WorkspaceMember" and view.action in self.manager_actions:
             return role in {WorkspaceMember.Role.OWNER, WorkspaceMember.Role.ADMIN}
 
-        if model_name == "ProjectMember" and view.action in self.manager_actions:
+        if model_name == "ProjectMember":
             project_role = obj.project.project_memberships.filter(user=request.user).values_list("role", flat=True).first()
-            return role in {WorkspaceMember.Role.OWNER, WorkspaceMember.Role.ADMIN} or project_role == "admin"
+            if role in {WorkspaceMember.Role.OWNER, WorkspaceMember.Role.ADMIN}:
+                return True
+            return project_role == "admin" if view.action in self.manager_actions else bool(project_role)
 
         if model_name == "Project" and view.action in self.manager_actions:
             project_role = obj.project_memberships.filter(user=request.user).values_list("role", flat=True).first()
             return role in {WorkspaceMember.Role.OWNER, WorkspaceMember.Role.ADMIN} or project_role == "admin"
+
+        if model_name in {"Task", "Sprint", "SubTask", "TaskDependency", "Comment", "Attachment"}:
+            project = obj.project if model_name in {"Task", "Sprint"} else obj.task.project
+            if role in {WorkspaceMember.Role.OWNER, WorkspaceMember.Role.ADMIN}:
+                return True
+            project_role = project.project_memberships.filter(user=request.user).values_list("role", flat=True).first()
+            if not project_role:
+                return False
+            if view.action in self.manager_actions and project_role == "viewer":
+                return False
+            if (
+                model_name in {"Task", "SubTask", "TaskDependency"}
+                and view.action in self.manager_actions
+                and project_role != "admin"
+                and (model_name != "Task" or view.action != "create")
+                and not project.workspace.allow_member_edit_tasks
+            ):
+                return False
 
         if role == WorkspaceMember.Role.OWNER:
             return True

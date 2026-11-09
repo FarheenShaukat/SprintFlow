@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from apps.ai.services import suggest_priority, task_breakdown
 from apps.projects.models import Project
-from apps.reports.services import sprint_health_score
+from apps.reports.services import project_report, sprint_health_score
 from apps.tasks.models import Task
 from apps.workspaces.models import Workspace, WorkspaceMember
 from apps.accounts.serializers import RegisterSerializer
@@ -53,3 +53,13 @@ class ServiceTests(TestCase):
         user = serializer.save()
         self.assertTrue(user.has_usable_password())
         self.assertEqual(user.full_name, "Invited User")
+
+    def test_project_report_reuses_one_summary_query(self):
+        Task.objects.create(project=self.project, title="Finished", reporter=self.user, status="done")
+        Task.objects.create(project=self.project, title="Blocked", reporter=self.user, is_blocked=True, priority="critical", due_date=timezone.localdate() - timedelta(days=1))
+        with self.assertNumQueries(4):
+            report = project_report(self.project)
+        self.assertEqual(report["total_tasks"], 2)
+        self.assertEqual(report["completed_tasks"], 1)
+        self.assertEqual(report["completion_rate"], 50)
+        self.assertEqual(report["sprint_health_score"], 85)

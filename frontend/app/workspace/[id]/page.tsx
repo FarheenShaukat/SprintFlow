@@ -219,7 +219,7 @@ export default function WorkspacePage() {
                       <Link href={`/projects/${project.id}/board`}><Button variant="secondary"><ExternalLink size={16} /> Board</Button></Link>
                       {canManageProjects ? (
                         <>
-                          <Button variant="secondary" onClick={() => openAccess(project)}><LockKeyhole size={16} /> Access</Button>
+                          <Button variant="secondary" onClick={() => openAccess(project)}><LockKeyhole size={16} /> Manage Access</Button>
                           <Button variant="secondary" onClick={() => startEdit(project)}><Pencil size={16} /> Edit</Button>
                           <Button variant="secondary" onClick={() => archiveProject(project)}><Archive size={16} /> {project.status === "archived" ? "Restore" : "Archive"}</Button>
                           <Button variant="danger" onClick={() => deleteProject(project)}><Trash2 size={16} /> Delete</Button>

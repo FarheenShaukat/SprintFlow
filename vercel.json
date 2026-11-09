@@ -1,7 +1,8 @@
 {
   "version": 2,
   "env": {
-    "NEXT_PUBLIC_API_URL": "/api"
+    "NEXT_PUBLIC_API_URL": "/api",
+    "MCP_PUBLIC_URL": "https://sprint-flow-five.vercel.app"
   },
   "builds": [
     {
@@ -14,6 +15,14 @@
     }
   ],
   "routes": [
+    {
+      "src": "/mcp/?",
+      "dest": "/backend/api/index.py"
+    },
+    {
+      "src": "/(oauth/.*|\\.well-known/.*)",
+      "dest": "/backend/api/index.py"
+    },
     {
       "src": "/api/(.*)",
       "dest": "/backend/api/index.py"

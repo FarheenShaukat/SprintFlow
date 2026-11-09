@@ -17,6 +17,8 @@ class ProjectSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "workspace", "created_by", "created_at", "updated_at"]
 
     def get_user_project_role(self, obj):
+        if hasattr(obj, "requester_project_role"):
+            return obj.requester_project_role
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return None

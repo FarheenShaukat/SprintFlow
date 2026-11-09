@@ -31,6 +31,8 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
+    "oauth2_provider",
+    "apps.integrations",
     "apps.accounts",
     "apps.workspaces",
     "apps.projects",
@@ -82,6 +84,7 @@ DATABASES = {
     "default": dj_database_url.config(
         default=DATABASE_URL or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
         conn_max_age=600,
+        conn_health_checks=True,
     )
 }
 
@@ -152,3 +155,31 @@ EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="SprintFlow AI <noreply@sprintflow.ai>")
 FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:3000")
+
+MCP_PUBLIC_URL = config("MCP_PUBLIC_URL", default="http://localhost:8000").rstrip("/")
+CSRF_TRUSTED_ORIGINS = [MCP_PUBLIC_URL]
+SESSION_COOKIE_SECURE = IS_VERCEL or not DEBUG
+CSRF_COOKIE_SECURE = IS_VERCEL or not DEBUG
+if IS_VERCEL:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+LOGIN_URL = "/oauth/login/"
+OAUTH2_PROVIDER = {
+    "SCOPES": {"sprintflow": "Read and manage your SprintFlow projects, tasks and teams"},
+    "DEFAULT_SCOPES": ["sprintflow"],
+    "PKCE_REQUIRED": True,
+    "ACCESS_TOKEN_EXPIRE_SECONDS": 3600,
+    "REFRESH_TOKEN_EXPIRE_SECONDS": 60 * 60 * 24 * 30,
+    "ROTATE_REFRESH_TOKEN": True,
+    "REFRESH_TOKEN_REUSE_PROTECTION": True,
+    "COMPLIANT_BCP_RFC9700_PKCE_METHOD": True,
+    "ALLOWED_REDIRECT_URI_SCHEMES": ["https", "http"],
+    "OAUTH2_VALIDATOR_CLASS": "apps.integrations.oauth.MCPOAuth2Validator",
+    "DCR_ENABLED": True,
+    "DCR_REGISTRATION_PERMISSION_CLASSES": ["oauth2_provider.dcr.AllowAllDCRPermission"],
+    "OIDC_ISS_ENDPOINT": MCP_PUBLIC_URL,
+    "OAUTH2_PROTECTED_RESOURCE_IDENTIFIER": f"{MCP_PUBLIC_URL}/mcp",
+    "OAUTH2_PROTECTED_RESOURCE_AUTHORIZATION_SERVERS": [MCP_PUBLIC_URL],
+    "OAUTH2_RESPONSE_TYPES_SUPPORTED": ["code"],
+    "OAUTH2_GRANT_TYPES_SUPPORTED": ["authorization_code", "refresh_token"],
+    "OAUTH2_TOKEN_ENDPOINT_AUTH_METHODS_SUPPORTED": ["none"],
+}

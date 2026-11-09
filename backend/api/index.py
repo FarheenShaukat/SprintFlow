@@ -7,7 +7,6 @@ sys.path.append(str(BASE_DIR))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
-from django.core.wsgi import get_wsgi_application
+from config.asgi import application
 
-app = get_wsgi_application()
-application = app
+app = application

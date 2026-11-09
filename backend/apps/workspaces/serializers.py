@@ -36,7 +36,10 @@ class WorkspaceMemberSerializer(serializers.ModelSerializer):
 class WorkspaceInviteSerializer(serializers.Serializer):
     email = serializers.EmailField()
     full_name = serializers.CharField(required=False, allow_blank=True, max_length=160)
-    role = serializers.ChoiceField(choices=WorkspaceMember.Role.choices, default=WorkspaceMember.Role.MEMBER)
+    role = serializers.ChoiceField(
+        choices=[WorkspaceMember.Role.ADMIN, WorkspaceMember.Role.MEMBER],
+        default=WorkspaceMember.Role.MEMBER,
+    )
 
 
 class WorkspaceInvitationSerializer(serializers.ModelSerializer):

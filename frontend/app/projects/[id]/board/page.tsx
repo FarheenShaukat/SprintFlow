@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { useParams } from "next/navigation";
-import { Filter, Maximize2, Minus, Plus } from "lucide-react";
+import { Filter, Maximize2, Minus, Plus, RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { RowSkeleton } from "@/components/ui/skeleton";
@@ -62,25 +62,33 @@ export default function KanbanPage() {
   const [boardZoom, setBoardZoom] = useState(0.9);
   const [draggingTask, setDraggingTask] = useState<Task | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<Status | null>(null);
+  const loadRequest = useRef(0);
 
-  async function load(query = "") {
+  const load = useCallback(async (query = "") => {
+    const requestId = ++loadRequest.current;
     setLoading(true);
     try {
       const result = await taskApi.list(projectId, query);
+      if (requestId !== loadRequest.current) return;
       setApiTasks(result.results);
+      setSelected((current) => {
+        const updated = current && result.results.find((task) => task.id === current.id);
+        return updated ? mapTask(updated) : null;
+      });
       setError("");
     } catch {
-      setError("Could not load tasks. Make sure you are signed in and the project exists.");
+      if (requestId === loadRequest.current) setError("Could not load tasks. Check your connection and project access, then refresh.");
     } finally {
-      setLoading(false);
+      if (requestId === loadRequest.current) setLoading(false);
     }
-  }
+  }, [projectId]);
 
   useEffect(() => {
     if (projectId) {
       void load(filter);
     }
-  }, [projectId, filter]);
+    return () => { loadRequest.current++; };
+  }, [projectId, filter, load]);
 
   useEffect(() => {
     if (!projectId) return;
@@ -169,6 +177,7 @@ export default function KanbanPage() {
                 <Button className="h-9 rounded-lg" variant={filter === "?priority=high" ? "primary" : "ghost"} onClick={() => setFilter("?priority=high")}><Filter size={16} /> High</Button>
                 <Button className="h-9 rounded-lg" variant={filter === "?due=today" ? "primary" : "ghost"} onClick={() => setFilter("?due=today")}><Filter size={16} /> Due today</Button>
               </div>
+              <Button variant="secondary" onClick={() => void load(filter)} disabled={loading} className="h-9 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" title="Load the latest tasks and updates from your teammates"><RefreshCw size={16} /> {loading ? "Refreshing..." : "Refresh"}</Button>
               <div className="flex items-center gap-1 rounded-xl border border-outline-variant bg-surface-container-low p-1">
                 <button className="grid h-9 w-9 place-items-center rounded-lg text-on-surface-variant hover:bg-surface" onClick={() => setBoardZoom((value) => Math.max(0.75, value - 0.05))} aria-label="Zoom out"><Minus size={16} /></button>
                 <span className="w-12 text-center text-sm font-semibold">{Math.round(boardZoom * 100)}%</span>
