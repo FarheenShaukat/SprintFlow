@@ -19,12 +19,13 @@ This is a portfolio-grade full-stack project for an Associate Software Engineer 
 - Reports for workload, overdue tasks, sprint health, task status, and priority
 - Swagger/OpenAPI docs through drf-spectacular
 - Remote MCP connector for Claude and Codex with per-user OAuth login
-- Shared team projects with explicit member/viewer access
+- Shared team projects with explicit member/viewer access...
 
 ## Claude and Codex Connector
 
 See [docs/MCP.md](docs/MCP.md) for deployment, sign-in, supported tools and team sharing.
 After deploying this change and running migrations, use `https://sprint-flow-five.vercel.app/mcp` as the connector URL.
+
 
 ## Smart AI Features
 
