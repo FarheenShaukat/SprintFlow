@@ -16,6 +16,8 @@ export default function TeamPage() {
   const [invitations, setInvitations] = useState<WorkspaceInvitation[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [creatingWorkspace, setCreatingWorkspace] = useState(false);
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<"admin" | "member">("member");
   const [message, setMessage] = useState("");
@@ -98,21 +100,43 @@ export default function TeamPage() {
     }
   }
 
+  async function createWorkspace() {
+    if (!workspaceName.trim() || creatingWorkspace) return;
+    setCreatingWorkspace(true);
+    setError("");
+    try {
+      const created = await workspaceApi.create({ name: workspaceName.trim() });
+      setWorkspaceName("");
+      await load(created.id);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not create workspace. Please try again.");
+    } finally {
+      setCreatingWorkspace(false);
+    }
+  }
+
   return (
     <AppShell active="Team">
       <div className="mx-auto max-w-7xl space-y-6 p-6">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div><p className="font-mono text-xs uppercase tracking-wider text-on-surface-variant">Members & Roles</p><h1 className="text-3xl font-bold">Team Members</h1></div>
-          <select aria-label="Workspace" value={workspaceId ?? ""} onChange={(event) => void load(Number(event.target.value))} className="rounded-lg border border-outline-variant px-3 py-2 outline-none focus:border-primary">
+          <select aria-label="Workspace" disabled={!workspaces.length} value={workspaceId ?? ""} onChange={(event) => void load(Number(event.target.value))} className="min-w-40 rounded-lg border border-outline-variant bg-surface px-3 py-2 outline-none focus:border-primary">
+            {!workspaces.length ? <option value="">No workspace selected</option> : null}
             {workspaces.map((workspace) => <option value={workspace.id} key={workspace.id}>{workspace.name}</option>)}
           </select>
         </div>
         {error ? <div role="alert" className="rounded-lg border border-error/20 bg-error-container p-3 text-sm text-error">{error} <Button variant="secondary" onClick={() => void load(workspaceId ?? undefined)} disabled={loading}>Retry</Button></div> : null}
-        <div className="rounded-lg border border-outline-variant bg-surface p-4 text-sm text-on-surface-variant">
+        {workspaceId ? <div className="rounded-lg border border-outline-variant bg-surface p-4 text-sm text-on-surface-variant">
           Invite your teammate to this workspace first. After they accept, a workspace owner or admin can open the workspace and choose Manage Access on a project to give them access to the same board.
           {workspaceId ? <Link href={`/workspace/${workspaceId}`} className="ml-2 font-medium text-primary underline focus-visible:outline focus-visible:outline-2">Open workspace</Link> : null}
-        </div>
-        {!loading && !error && !workspaces.length ? <p className="text-sm text-on-surface-variant">No workspaces yet. Create a workspace from the dashboard to start collaborating.</p> : null}
+        </div> : null}
+        {!loading && !workspaces.length ? <form onSubmit={(event) => { event.preventDefault(); void createWorkspace(); }} className="max-w-xl rounded-2xl border border-outline-variant bg-surface p-6">
+          <h2 className="text-xl font-semibold">Create a workspace to invite members</h2>
+          <p className="mt-2 text-sm text-on-surface-variant">Members join a workspace. Create one here, then send your invitation.</p>
+          <label htmlFor="workspace-name" className="mt-5 block text-sm font-medium">Workspace name</label>
+          <input id="workspace-name" required value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} disabled={creatingWorkspace} placeholder="My team" className="mt-2 w-full rounded-lg border border-outline-variant px-3 py-2 outline-none focus:border-primary" />
+          <Button type="submit" disabled={creatingWorkspace || !workspaceName.trim()} className="mt-4">{creatingWorkspace ? "Creating..." : "Create workspace"}</Button>
+        </form> : null}
         <section className="grid gap-6 lg:grid-cols-[1fr_380px]">
           <div className="rounded-2xl border border-outline-variant bg-surface">
             <div className="border-b border-outline-variant p-5">

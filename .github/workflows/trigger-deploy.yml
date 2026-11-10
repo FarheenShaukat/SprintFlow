@@ -1,0 +1,35 @@
+name: Trigger Vercel deployment
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trigger-deploy-main
+  cancel-in-progress: false
+
+jobs:
+  trigger-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+
+      - name: Commit as Vercel-connected account when needed
+        run: |
+          author_email="$(git log -1 --format=%ae)"
+          if [ "$author_email" = "126336030+FarheenShaukat@users.noreply.github.com" ]; then
+            echo "Latest commit already belongs to Farheen; skipping."
+            exit 0
+          fi
+          git config user.name "Farheen Shaukat"
+          git config user.email "126336030+FarheenShaukat@users.noreply.github.com"
+          git commit --allow-empty -m "chore: trigger deploy"
+          git push origin main
