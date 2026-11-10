@@ -105,8 +105,8 @@ class MCPOAuthTests(TestCase):
         metadata = response.json()
         self.assertEqual(metadata["issuer"], ORIGIN)
         for key, path in {
-            "authorization_endpoint": "/oauth/authorize/", "token_endpoint": "/oauth/token/",
-            "registration_endpoint": "/oauth/register/", "revocation_endpoint": "/oauth/revoke_token/",
+            "authorization_endpoint": "/oauth/authorize", "token_endpoint": "/oauth/token",
+            "registration_endpoint": "/oauth/register", "revocation_endpoint": "/oauth/revoke_token",
         }.items():
             self.assertEqual(metadata[key], ORIGIN + path)
         self.assertEqual(metadata["code_challenge_methods_supported"], ["S256"])
@@ -378,7 +378,7 @@ class MCPConfiguredOAuthTests(TestCase):
         response = browser.get(authorization_url)
         self.assertEqual(response.status_code, 302)
         login_location = response["Location"]
-        self.assertEqual(urlsplit(login_location).path, "/oauth/login/")
+        self.assertEqual(urlsplit(login_location).path, settings.LOGIN_URL)
         self.assertEqual(browser.get(login_location).status_code, 200)
         response = browser.post("/oauth/login/", {
             "username": user.email, "password": "safe-password", "next": authorization_url,
