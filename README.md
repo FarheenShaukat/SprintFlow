@@ -2,7 +2,7 @@
 
 SprintFlow AI is an intelligent project management platform inspired by Jira and Linear. It helps software teams manage workspaces, projects, sprints, tasks, comments, attachments, activity logs, AI-powered task insights, sprint health scoring, and analytics.
 
-## Why This Project Was Built
+## Why This Project Was Built(purpose)
 
 This is a portfolio-grade full-stack project for an Associate Software Engineer role. It demonstrates Python, Django REST Framework, JWT auth, databases, REST APIs, Docker, CI/CD, modern frontend development, and clean product thinking.
 
