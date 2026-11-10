@@ -21,6 +21,7 @@ export default function TeamPage() {
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<"admin" | "member">("member");
   const [message, setMessage] = useState("");
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [invitationError, setInvitationError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -39,6 +40,7 @@ export default function TeamPage() {
     setError("");
     setInvitationError("");
     setMessage("");
+    setInviteUrl(null);
     setMembers([]);
     setInvitations([]);
     setRole("member");
@@ -92,6 +94,7 @@ export default function TeamPage() {
       setFullName("");
       setRole("member");
       setMessage(invitation.email_sent ? "Invite sent. It will stay pending until the recipient accepts." : `Invite saved as pending, but email failed: ${invitation.email_error || "Please try sending it again."}`);
+      setInviteUrl(invitation.invite_url);
       if (canManage) setInvitations((current) => [invitation, ...current.filter((item) => item.id !== invitation.id)]);
     } catch (error) {
       if (requestId === loadRequest.current) setError(error instanceof Error ? error.message : "Could not send invitation. Please try again.");
@@ -160,6 +163,7 @@ export default function TeamPage() {
                   <h2 className="font-semibold">{invitation.full_name || invitation.email}</h2>
                   <p className="text-sm text-on-surface-variant">{invitation.email}</p>
                   {!invitation.email_sent && invitation.email_error ? <p className="mt-1 text-xs text-error">Email failed: {invitation.email_error}</p> : null}
+                  {invitation.invite_url ? <Button variant="secondary" className="mt-2" onClick={() => void navigator.clipboard.writeText(invitation.invite_url!)}>Copy invite link</Button> : null}
                 </div>
                 <Badge tone={invitation.status === "accepted" ? "success" : "medium"}>{invitation.status}</Badge>
                 <Badge tone={invitation.email_sent ? "success" : "critical"}>{invitation.email_sent ? "email sent" : "email failed"}</Badge>
@@ -183,6 +187,7 @@ export default function TeamPage() {
             </> : <p className="mt-4 text-sm text-on-surface-variant">Teammates you invite join as workspace members.</p>}
             <Button type="submit" disabled={inviting || !email.trim()} className="mt-5 w-full"><Mail size={18} /> {inviting ? "Sending invite..." : "Send Invite"}</Button>
             {message ? <p role="status" className="mt-4 rounded-lg bg-surface-container-low p-3 text-sm text-on-surface-variant">{message}</p> : null}
+            {inviteUrl ? <Button type="button" variant="secondary" className="mt-3 w-full" onClick={() => void navigator.clipboard.writeText(inviteUrl)}>Copy invite link to share</Button> : null}
           </form> : !loading && myRole ? <div className="rounded-2xl border border-outline-variant bg-surface p-6 text-sm text-on-surface-variant">Ask a workspace owner or admin to invite your teammate and grant project access.</div> : null}
         </section>
       </div>
