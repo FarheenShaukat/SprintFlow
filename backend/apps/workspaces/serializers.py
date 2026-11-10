@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from rest_framework import serializers
 
 from apps.accounts.serializers import UserSerializer
@@ -45,12 +46,18 @@ class WorkspaceInviteSerializer(serializers.Serializer):
 class WorkspaceInvitationSerializer(serializers.ModelSerializer):
     invited_by = UserSerializer(read_only=True)
     accepted_by = UserSerializer(read_only=True)
+    invite_url = serializers.SerializerMethodField()
+
+    def get_invite_url(self, invitation):
+        if invitation.status != WorkspaceInvitation.Status.PENDING or invitation.email_sent:
+            return None
+        return f"{settings.FRONTEND_URL.rstrip('/')}/invitations/{invitation.token}"
 
     class Meta:
         model = WorkspaceInvitation
         fields = [
             "id", "workspace", "email", "full_name", "role", "status", "invited_by",
-            "accepted_by", "email_sent", "email_error", "accepted_at", "created_at",
+            "accepted_by", "email_sent", "email_error", "invite_url", "accepted_at", "created_at",
             "updated_at",
         ]
         read_only_fields = fields
