@@ -210,6 +210,7 @@ export type WorkspaceInvitation = {
   status: "pending" | "accepted";
   email_sent: boolean;
   email_error: string;
+  invite_url: string | null;
   accepted_at: string | null;
   created_at: string;
 };
