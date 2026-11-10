@@ -2,6 +2,7 @@
   "version": 2,
   "env": {
     "NEXT_PUBLIC_API_URL": "/api",
+    "FRONTEND_URL": "https://sprint-flow-five.vercel.app",
     "MCP_PUBLIC_URL": "https://sprint-flow-five.vercel.app"
   },
   "builds": [
